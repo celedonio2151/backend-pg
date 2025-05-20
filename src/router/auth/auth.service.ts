@@ -1,0 +1,250 @@
+import {
+  ForbiddenException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+
+import {
+  CreateAuthAdminDto,
+  CreateGoogleUserDto,
+  LoginAdminDto,
+  LoginUserDto,
+  RefreshTokenDto,
+} from './dto/create-auth.dto';
+import { UserService } from 'src/router/user/user.service';
+import { HashService } from 'src/router/auth/hashing/password.hash';
+import { JWTService } from 'src/jwt/jwt.service';
+import { AuthPayload } from 'src/router/auth/interface/payload.interface';
+import { User } from 'src/router/user/entities/user.entity';
+import { CreateUserDto } from 'src/router/user/dto/create-user.dto';
+import { RolesService } from 'src/router/roles/roles.service';
+
+export type Tokens = {
+  accessToken: string;
+  refreshToken: string;
+};
+
+@Injectable()
+export class AuthService {
+  constructor(
+    private userService: UserService,
+    private hashService: HashService,
+    private jwtService: JWTService,
+    private readonly roleService: RolesService,
+    private readonly configService: ConfigService,
+  ) {}
+
+  // ===============  CREATE NEW USER  =============================
+  async create(body: CreateAuthAdminDto, filename: string) {
+    const passwordHashed = await this.hashService.encrypt(body.password);
+    const body2: CreateUserDto = {
+      ...body,
+      password: passwordHashed,
+      profileImg: filename,
+    };
+    // console.log('🚀 ~ AuthService ~ bpdy:', body2);
+    const newUser = await this.userService.create(body2);
+    const payload: AuthPayload = {
+      _id: newUser._id,
+      name: newUser.name,
+      email: newUser.email,
+      roles: newUser.roles.map((role) => role.name),
+    };
+    const myTokens = await this.getTokens(payload);
+    await this.userService.updateRefreshToken(
+      newUser._id,
+      myTokens.refreshToken,
+    );
+    await this.userService.updateAccessToken(newUser._id, myTokens.accessToken);
+    const { password, accessToken, refreshToken, ...user } = newUser;
+    return {
+      myTokens,
+      user,
+      message: 'User created successfully',
+    };
+  }
+
+  // ===============  VALIDATE GOOGLE USER  =============================
+  async validateGoogleUser(body: CreateGoogleUserDto) {
+    const existingUser = await this.userService.findByEmailRaw(body.email);
+    let user: User;
+    if (existingUser) {
+      user = existingUser;
+    } else {
+      const roleName = this.configService.get('DEFAULT_GOOGLE_ROLE');
+      const role = await this.roleService.findOneByName(roleName);
+      const body2: CreateGoogleUserDto = {
+        ...body,
+        password: '',
+        authProvider: 'GOOGLE',
+        role_id: [role._id],
+      };
+      user = await this.userService.createWithGoogle(body2);
+    }
+
+    const payload = this.createPayload(user);
+    const myTokens = await this.getTokens(payload);
+    await this.userService.updateRefreshToken(user._id, myTokens.refreshToken);
+    await this.userService.updateAccessToken(user._id, myTokens.accessToken);
+
+    const { password, accessToken, refreshToken, ...userData } = user;
+
+    return {
+      myTokens,
+      user: userData,
+      message: existingUser
+        ? 'User logged in successfully with Google'
+        : 'User created successfully with Google',
+    };
+  }
+
+  // ===============  LOGIN ADMIN  =============================
+  async loginAdmin(loginUser: LoginAdminDto) {
+    console.log('🚀 ~ AuthService ~ loginAdmin ~ loginUser:', loginUser);
+    const user = await this.userService.findByEmailRaw(loginUser.email);
+    if (!user) throw new UnauthorizedException(`Credenciales inválidos`);
+    const passwordTrue = await this.hashService.compare(
+      loginUser.password,
+      user.password,
+    );
+    if (!passwordTrue)
+      throw new UnauthorizedException(`Credenciales inválidos`);
+    const payload = this.createPayload(user);
+    const myTokens = await this.getTokens(payload);
+    // Save tokens en the database
+    await this.userService.updateRefreshToken(user._id, myTokens.refreshToken);
+    await this.userService.updateAccessToken(user._id, myTokens.accessToken);
+    const { password, refreshToken, accessToken, ...result } = user;
+    result.profileImg =
+      this.configService.get('HOST_ADMIN') + 'profileImgs/' + user.profileImg;
+    return {
+      myTokens,
+      user: result,
+      message: `Inicio sesión correctamente`,
+    };
+  }
+
+  // ===============  LOGIN USER  =============================
+  async loginUser(loginUser: LoginUserDto) {
+    console.log('🚀 ~ AuthService ~ loginUser ~ loginUser:', loginUser);
+    const user = await this.userService.authfindByCIRaw(loginUser.ci);
+    if (!user) throw new UnauthorizedException(`Credenciales inválidos`);
+    const payload: AuthPayload = {
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      roles: user.roles.map((role) => role.name),
+    };
+    const myTokens = await this.getTokens(payload);
+    // Save tokens en the database
+    await this.userService.updateRefreshToken(user._id, myTokens.refreshToken);
+    await this.userService.updateAccessToken(user._id, myTokens.accessToken);
+    const { password, refreshToken, accessToken, ...result } = user;
+    result.profileImg =
+      this.configService.get('HOST_ADMIN') + 'profileImgs/' + user.profileImg;
+    return {
+      myTokens,
+      user: result,
+      message: `Inicio sesión correctamente`,
+    };
+  }
+
+  // ===============  LOGOUT USER  =============================
+  async logoutUser(
+    user: AuthPayload,
+    accessToken: string,
+    refreshToken: string,
+  ) {
+    // console.log('🚀 ~ AuthService ~ logoutUser ~ user:', user);
+    const findUser = await this.userService.findOneByIdAndTokens(user._id, [
+      accessToken,
+      refreshToken,
+    ]);
+    findUser.accessToken = findUser.accessToken.filter(
+      (tk) => tk != accessToken,
+    );
+    findUser.refreshToken = findUser.refreshToken.filter(
+      (tk) => tk != refreshToken,
+    );
+    await this.userService.saveUser(findUser);
+    return {
+      message: `User successfully logged out`,
+    };
+  }
+
+  // ===============  LOGOUT USER ALL DEVICES  =============================
+  async logoutUserAllDevices(user: AuthPayload, token: string) {
+    // console.log('🚀 ~ AuthService ~ logoutUser ~ user:', user);
+    const findUser = await this.userService.findOneByIdAndTokens(user._id, [
+      token,
+      token,
+    ]);
+    // console.log('🚀 ~ AuthService ~ logoutUser ~ user:', findUser);
+    findUser.accessToken = [];
+    findUser.refreshToken = [];
+    await this.userService.saveUser(findUser);
+    return {
+      message: `User successfully logged out all devices`,
+    };
+  }
+
+  // new access token and refresh token
+  async refreshTokens(refreshToken: RefreshTokenDto): Promise<Tokens> {
+    const user = await this.userService.findOneById(refreshToken.userId);
+    console.log('🚀 ~ AuthService ~ refreshTokens ~ user:', user);
+
+    if (!user || !user.refreshToken)
+      throw new ForbiddenException('Access Denied');
+
+    // const rtMatches = await this.hashService.compare(rt, user.refreshToken);
+    // if (!rtMatches) throw new ForbiddenException('Access Denied');
+
+    const payload: AuthPayload = {
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      roles: user.roles.map((role) => role.name),
+    };
+    const tokens = await this.getTokens(payload);
+    // Save tokens in the database
+    // await this.updateRtHash(user._id.toString(), tokens.refreshToken);
+
+    return tokens;
+  }
+
+  // generate access and refresh tokens for the user
+  private async getTokens(params: AuthPayload): Promise<Tokens> {
+    const tokenPayload: AuthPayload = {
+      _id: params._id,
+      name: params.name,
+      email: params.email,
+      roles: params.roles,
+    };
+
+    const [at, rt] = await Promise.all([
+      this.jwtService.signAsync(tokenPayload, {
+        secret: this.configService.get('JWT_KEY'),
+        expiresIn: this.configService.get('JWT_EXPIRATION_TIMEOUT'),
+      }),
+      this.jwtService.signAsync(tokenPayload, {
+        secret: this.configService.get('JWT_KEY_REFRESH'),
+        expiresIn: this.configService.get('JWT_EXPIRATION_TIMEOUT_REFRESH'),
+      }),
+    ]);
+
+    return {
+      accessToken: at,
+      refreshToken: rt,
+    };
+  }
+
+  private createPayload(user: User): AuthPayload {
+    return {
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      roles: user.roles.map((role) => role.name),
+    };
+  }
+}

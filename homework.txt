@@ -1,0 +1,1 @@
+Al calcular los saldos por consumo, si excede a las formulas registradas mejorar o devolver el unltimo saldo en billing.service.ts

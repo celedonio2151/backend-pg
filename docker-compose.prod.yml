@@ -1,0 +1,33 @@
+# version: '5.0'
+
+services:
+  mysqldbml:
+    image: mysql
+    container_name: mysqlMLProd
+    restart: always
+    env_file: ./.env
+    environment:
+      MYSQL_ROOT_PASSWORD: $DB_PASSWORD_ROOT
+      MYSQL_USER: $DB_USER
+      MYSQL_PASSWORD: $DB_PASSWORD
+      MYSQL_DATABASE: $DB_NAME
+    ports:
+      - $DB_PORT:$DB_PORT
+    volumes:
+      - db_data:/var/lib/mysql
+
+  ml-agua-app:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod  # Usamos el Dockerfile de producción
+    container_name: nestMLProd
+    env_file: .env
+    depends_on:
+      - mysqldbml
+    ports:
+      - $PORT:$PORT
+volumes:
+  db_data:
+
+# Ejecutar en produccion
+# docker-compose -f docker-compose.prod.yml up --build -d
