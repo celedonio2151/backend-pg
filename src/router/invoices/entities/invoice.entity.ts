@@ -2,12 +2,10 @@ import { AuditableEntity } from 'src/configs/auditable-entity.config';
 import { MeterReading } from 'src/router/meter-readings/entities/meter-reading.entity';
 import {
   Column,
-  CreateDateColumn,
   Entity,
   JoinColumn,
   OneToOne,
   PrimaryGeneratedColumn,
-  UpdateDateColumn,
 } from 'typeorm';
 
 @Entity()

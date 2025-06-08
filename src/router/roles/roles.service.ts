@@ -57,6 +57,14 @@ export class RolesService {
 
   async update(id: string, updateRoleDto: UpdateRoleDto): Promise<Role> {
     const role = await this.findOneById(id);
+    const name = await this.roleRepository.findOne({
+      where: { name: updateRoleDto.name },
+    });
+    if (name && name._id !== id) {
+      throw new ConflictException(
+        `Rol con el nombre ${updateRoleDto.name} ya existe`,
+      );
+    }
     const updated = Object.assign(role, updateRoleDto);
     return this.roleRepository.save(updated);
   }

@@ -1,66 +1,25 @@
 import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-  Res,
-  Query,
+    Body,
+    Controller,
+    Get,
+    Param,
+    Patch,
+    Post,
+    Query,
+    Res,
 } from '@nestjs/common';
-import { InvoicesService } from './invoices.service';
-import { UpdateInvoiceDto } from './dto/update-invoice.dto';
-import { Response } from 'express';
-import { GenerateQRCodeBNBDTO } from './dto/generate-qr-bnb.dto';
 import { ApiTags } from '@nestjs/swagger';
-import { IsPublic } from 'src/decorators/public.decorator';
+import { Response } from 'express';
+import { generateNamePDF } from 'src/helpers/generateNamePDF';
 import { ReceiveNotificationDTO } from 'src/router/invoices/dto/recieve-notification.dto';
-import { FilterDateDto } from 'src/shared/dto/queries.dto';
+import { FilterDateDto, ModePDFQueryDto } from 'src/shared/dto/queries.dto';
+import { UpdateInvoiceDto } from './dto/update-invoice.dto';
+import { InvoicesService } from './invoices.service';
 
 @ApiTags('Facturas (Recibos de agua)')
 @Controller('invoice')
 export class InvoicesController {
   constructor(private readonly invoicesService: InvoicesService) {}
-  // ========== FIND AND GENERATE A INVOICE  ==========
-  // @Post(':readingId')
-  @Get('/pdf/:readingId')
-  // @IsPublic() // No deberia ggg
-  async createPDF(
-    @Param('readingId') readingId: string,
-    @Query('mode') mode: string,
-    @Res() res: Response,
-  ): Promise<void> {
-    const modePDF = mode || 'inline';
-    const buffer = await this.invoicesService.generatePDFDocument(readingId);
-    res.set({
-      'Content-Type': 'application/pdf',
-      'Content-Disposition': `${modePDF}; filename=example.pdf`,
-      'Content-Length': buffer.length,
-    });
-
-    res.end(buffer);
-  }
-
-  // ========== FIND AND GENERATE A INVOICE DOUBLE  ==========
-  @Get('/pdf-double/:readingId')
-  // @Public() // No deberia ggg
-  async createPDFDouble(
-    @Param('readingId') readingId: string,
-    @Query('mode') mode: string,
-    @Res() res: Response,
-  ): Promise<void> {
-    const modePDF = mode || 'inline';
-    const buffer =
-      await this.invoicesService.generatePDFDocumentDouble(readingId);
-    res.set({
-      'Content-Type': 'application/pdf',
-      'Content-Disposition': `${modePDF}; filename=example.pdf`,
-      'Content-Length': buffer.length,
-    });
-
-    res.end(buffer);
-  }
 
   // ========== CREATE INVOICES A MONTH ==========
   @Post('')
@@ -68,21 +27,61 @@ export class InvoicesController {
     return await this.invoicesService.createInvoices(date);
   }
 
-  // ========== CREATE A INVOICE TEST ==========
-  @Get('/pdf')
-  async getPDF(
-    @Body() body: any,
-    @Query('mode') mode: string,
+  // ========== FIND BY ID AND GENERATE A INVOICE  ==========
+  @Get('/pdf/:readingId')
+  // @IsPublic() // No deberia ggg
+  async createPDF(
+    @Param('readingId') readingId: string,
+    @Query('mode') mode: ModePDFQueryDto,
     @Res() res: Response,
   ): Promise<void> {
-    const modePDF = mode || 'inline';
-    const pdfDoc = await this.invoicesService.generatePDF({});
-
-    res.setHeader('Content-Type', 'application/pdf');
+    const modePDF = mode.mode || 'inline';
+    const pdfDoc = await this.invoicesService.generatePDFDocument(readingId);
+    const filename = generateNamePDF();
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `${modePDF}; filename=${filename}.pdf`,
+    });
     pdfDoc.info.Title = 'Recibo de Agua potable 2025';
     pdfDoc.pipe(res);
     pdfDoc.end();
   }
+
+  // ========== FIND AND GENERATE A INVOICE DOUBLE  ==========
+  @Get('/pdf-double/:readingId')
+  // @Public() // No deberia ggg
+  async createPDFDouble(
+    @Param('readingId') readingId: string,
+    @Query('mode') mode: ModePDFQueryDto,
+    @Res() res: Response,
+  ): Promise<void> {
+    const modePDF = mode.mode || 'inline';
+    const pdfDoc =
+      await this.invoicesService.generatePDFDocumentDouble(readingId);
+    res.setHeader(
+      'Content-Disposition',
+      `${modePDF}; filename=example-double.pdf`,
+    );
+    pdfDoc.info.Title = 'Recibo de Agua potable 2025';
+    pdfDoc.pipe(res);
+    pdfDoc.end();
+  }
+
+  // ========== CREATE A INVOICE TEST ==========
+  // @Get('/pdf')
+  // async getPDF(
+  //   @Body() body: any,
+  //   @Query('mode') mode: ModePDFQueryDto,
+  //   @Res() res: Response,
+  // ): Promise<void> {
+  //   const modePDF = mode || 'inline';
+  //   const pdfDoc = await this.invoicesService.generatePDF({});
+
+  //   res.setHeader('Content-Type', 'application/pdf');
+  //   pdfDoc.info.Title = 'Recibo de Agua potable 2025';
+  //   pdfDoc.pipe(res);
+  //   pdfDoc.end();
+  // }
 
   // ========== LISTA ALL INVOICES RELATIONS WITH METER READING ==========
   @Get()
@@ -111,7 +110,7 @@ export class InvoicesController {
   // ========== GENERATE CODE QR OF INVOICE -> METER READING ==========
   @Post('/qr/:readingId')
   generateQRBNB(@Param('readingId') readingId: string) {
-    return this.invoicesService.getQRWithImageAsync(readingId);
+    return this.invoicesService.getQRWithImageAsync2(readingId);
     // return 'Hola que tal';
   }
 

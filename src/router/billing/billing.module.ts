@@ -2,8 +2,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Billing } from 'src/router/billing/entities/billing.entity';
 
 import { Module } from '@nestjs/common';
-import { BillingService } from './billing.service';
 import { BillingController } from './billing.controller';
+import { BillingService } from './billing.service';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Billing])],

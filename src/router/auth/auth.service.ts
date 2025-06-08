@@ -5,6 +5,13 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
+import { JWTService } from 'src/jwt/jwt.service';
+import { HashService } from 'src/router/auth/hashing/password.hash';
+import { AuthPayload } from 'src/router/auth/interface/payload.interface';
+import { RolesService } from 'src/router/roles/roles.service';
+import { CreateUserDto } from 'src/router/user/dto/create-user.dto';
+import { User } from 'src/router/user/entities/user.entity';
+import { UserService } from 'src/router/user/user.service';
 import {
   CreateAuthAdminDto,
   CreateGoogleUserDto,
@@ -12,13 +19,6 @@ import {
   LoginUserDto,
   RefreshTokenDto,
 } from './dto/create-auth.dto';
-import { UserService } from 'src/router/user/user.service';
-import { HashService } from 'src/router/auth/hashing/password.hash';
-import { JWTService } from 'src/jwt/jwt.service';
-import { AuthPayload } from 'src/router/auth/interface/payload.interface';
-import { User } from 'src/router/user/entities/user.entity';
-import { CreateUserDto } from 'src/router/user/dto/create-user.dto';
-import { RolesService } from 'src/router/roles/roles.service';
 
 export type Tokens = {
   accessToken: string;
@@ -129,6 +129,7 @@ export class AuthService {
   async loginUser(loginUser: LoginUserDto) {
     console.log('🚀 ~ AuthService ~ loginUser ~ loginUser:', loginUser);
     const user = await this.userService.authfindByCIRaw(loginUser.ci);
+    console.log('🚀 ~ AuthService ~ loginUser ~ user:', user);
     if (!user) throw new UnauthorizedException(`Credenciales inválidos`);
     const payload: AuthPayload = {
       _id: user._id,
@@ -140,9 +141,11 @@ export class AuthService {
     // Save tokens en the database
     await this.userService.updateRefreshToken(user._id, myTokens.refreshToken);
     await this.userService.updateAccessToken(user._id, myTokens.accessToken);
-    const { password, refreshToken, accessToken, ...result } = user;
+    const { password, codeVerification, refreshToken, accessToken, ...result } =
+      user;
     result.profileImg =
       this.configService.get('HOST_ADMIN') + 'profileImgs/' + user.profileImg;
+    console.log(user);
     return {
       myTokens,
       user: result,

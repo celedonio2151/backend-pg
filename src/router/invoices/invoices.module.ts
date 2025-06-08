@@ -1,13 +1,13 @@
+import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { HttpModule } from '@nestjs/axios';
 
+import { MeterReadingsModule } from 'src/router/meter-readings/meter-readings.module';
+import { PrinterModule } from 'src/router/printer/printer.module';
+import { BankModule } from '../bank/bank.module';
 import { Invoice } from './entities/invoice.entity';
 import { InvoicesController } from './invoices.controller';
 import { InvoicesService } from './invoices.service';
-import { MeterReadingsModule } from 'src/router/meter-readings/meter-readings.module';
-import { PrinterModule } from 'src/router/printer/printer.module';
-import { PrinterService } from 'src/router/printer/printer.service';
 
 @Module({
   imports: [
@@ -18,6 +18,7 @@ import { PrinterService } from 'src/router/printer/printer.service';
     TypeOrmModule.forFeature([Invoice]),
     PrinterModule,
     MeterReadingsModule,
+    BankModule,
   ],
   controllers: [InvoicesController],
   providers: [InvoicesService],

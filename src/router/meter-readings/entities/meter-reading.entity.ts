@@ -3,14 +3,11 @@ import { Invoice } from 'src/router/invoices/entities/invoice.entity';
 import { WaterMeter } from 'src/router/water-meters/entities/water-meter.entity';
 import {
   Column,
-  CreateDateColumn,
   Entity,
   JoinColumn,
-  JoinTable,
   ManyToOne,
   OneToOne,
   PrimaryGeneratedColumn,
-  UpdateDateColumn,
 } from 'typeorm';
 
 @Entity()
@@ -22,10 +19,10 @@ export class MeterReading extends AuditableEntity {
   date: Date;
 
   @Column('simple-json')
-  beforeMonth: { date: Date; meterValue: number };
+  beforeMonth: { date: Date; value: number };
 
   @Column('simple-json')
-  lastMonth: { date: Date; meterValue: number };
+  lastMonth: { date: Date; value: number };
 
   @Column()
   cubicMeters: number;

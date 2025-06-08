@@ -8,10 +8,11 @@ import { AuthPayload } from 'src/router/auth/interface/payload.interface';
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor() {
+    console.log('🚀 ~ JwtStrategy ~ constructor ~ jwtConstants:', jwtConstants);
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: jwtConstants.secret!,
+      secretOrKey: "jwtConstants.secret!",
     });
   }
 

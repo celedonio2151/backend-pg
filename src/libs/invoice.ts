@@ -1,36 +1,8 @@
 import { TDocumentDefinitions } from 'pdfmake/interfaces';
 import { formatDate } from 'src/helpers/formatDate';
-import { Invoice } from 'src/router/invoices/entities/invoice.entity';
+import { InvoicePDF } from 'src/router/invoices/interfaces/interfacesBNB.ForQR';
 
-const { _id, amountDue, isPaid, status, createdAt, updatedAt, meterReading } = {
-  _id: 10,
-  amountDue: 20,
-  isPaid: true,
-  status: true,
-  createdAt: '2024-08-28T05:56:34.612Z',
-  updatedAt: '2024-08-28T15:40:09.000Z',
-  meterReading: {
-    _id: 10,
-    date: '2024-02-10T12:56:20.000Z',
-    beforeMonth: {
-      date: '2024-01-20T12:56:20.000Z',
-      meterValue: 5,
-    },
-    lastMonth: {
-      date: '2024-02-10T12:56:20.000Z',
-      meterValue: 10,
-    },
-    cubicMeters: 5,
-    balance: 20,
-    meterImage: null,
-    description: null,
-    waterMeterId: 1,
-    createdAt: '2024-08-14T13:02:01.701Z',
-    updatedAt: '2024-08-14T13:02:01.701Z',
-  },
-};
-
-export function invoiceBuilt(data: any): TDocumentDefinitions {
+export function invoiceBuilt(data: InvoicePDF): TDocumentDefinitions {
   const logoPath = 'src/assets/logoAgua.png';
   const invoice: TDocumentDefinitions = {
     watermark: {
@@ -101,7 +73,7 @@ export function invoiceBuilt(data: any): TDocumentDefinitions {
       {
         columns: [
           { text: `CI:`, fontSize: 11, bold: true, width: 130 },
-          { text: `12504550`, fontSize: 11, width: 200 },
+          { text: `${data.ci}`, fontSize: 11, width: 200 },
           { text: `Fecha:`, fontSize: 11, bold: true, width: 40 },
           {
             text: `${formatDate(new Date(), 'DD/MM/YYYY   hh:mm:ss')}`,
@@ -120,12 +92,12 @@ export function invoiceBuilt(data: any): TDocumentDefinitions {
             width: 130,
           },
           {
-            text: `Oscar Fernando Vaca Carrasco Vedia`,
+            text: `${data.name} ${data.surname}`,
             fontSize: 11,
             width: 200,
           },
           { text: `Nº Medidor:`, fontSize: 11, bold: true },
-          { text: `71588952`, alignment: 'right', fontSize: 11 },
+          { text: `${data.meter_number}`, alignment: 'right', fontSize: 11 },
         ],
         margin: [0, 2],
       },
@@ -134,8 +106,15 @@ export function invoiceBuilt(data: any): TDocumentDefinitions {
           { text: `Lectura Anterior:`, bold: true, fontSize: 11, width: 130 },
           {
             text: [
-              { text: `${formatDate(new Date(), 'DD/MM/YYYY')}`, fontSize: 11 },
-              { text: `       1250088`, fontSize: 11, bold: true },
+              {
+                text: `${formatDate(data.beforeMonth.date, 'DD/MM/YYYY')}`,
+                fontSize: 11,
+              },
+              {
+                text: `       ${data.beforeMonth.value}`,
+                fontSize: 11,
+                bold: true,
+              },
             ],
             width: 200,
           },
@@ -143,12 +122,12 @@ export function invoiceBuilt(data: any): TDocumentDefinitions {
           {
             text: [
               {
-                text: `${formatDate(new Date(), 'DD/MM/YYYY')}`,
+                text: `${formatDate(data.lasthMonth.date, 'DD/MM/YYYY')}`,
                 fontSize: 11,
                 alignment: 'right',
               },
               {
-                text: `       1270089`,
+                text: `       ${data.lasthMonth.value}`,
                 fontSize: 11,
                 alignment: 'right',
                 bold: true,
@@ -188,28 +167,59 @@ export function invoiceBuilt(data: any): TDocumentDefinitions {
               { text: 'Saldo (Bs)', style: 'tableHeader' },
             ],
             [
-              1,
-              formatDate(meterReading.date, 'DD/MM/YYYY'),
-              meterReading.beforeMonth?.meterValue ?? '',
-              meterReading.lastMonth?.meterValue ?? '',
-              meterReading.cubicMeters ?? '',
-              meterReading.balance ?? '',
+              { text: 1, style: 'tableCell' },
+              { text: formatDate(data.date, 'DD/MM/YYYY'), style: 'tableCell' },
+              { text: data.beforeMonth.value, style: 'tableCell' },
+              { text: data.lasthMonth.value, style: 'tableCell' },
+              { text: data.cubicMeters, style: 'tableCell' },
+              { text: data.balance, style: 'tableCell' },
             ],
             [
-              2,
-              formatDate(meterReading.date, 'DD/MM/YYYY'),
-              meterReading.beforeMonth?.meterValue ?? '',
-              meterReading.lastMonth?.meterValue ?? '',
-              meterReading.cubicMeters ?? '',
-              meterReading.balance ?? '',
+              { text: 2, style: 'tableCell' },
+              { text: formatDate(data.date, 'DD/MM/YYYY'), style: 'tableCell' },
+              { text: data.beforeMonth.value, style: 'tableCell' },
+              { text: data.lasthMonth.value, style: 'tableCell' },
+              { text: data.cubicMeters, style: 'tableCell' },
+              { text: data.balance, style: 'tableCell' },
             ],
             [
-              2,
-              formatDate(meterReading.date, 'DD/MM/YYYY'),
-              meterReading.beforeMonth?.meterValue ?? '',
-              meterReading.lastMonth?.meterValue ?? '',
-              meterReading.cubicMeters ?? '',
-              meterReading.balance ?? '',
+              { text: 3, style: 'tableCell' },
+              { text: formatDate(data.date, 'DD/MM/YYYY'), style: 'tableCell' },
+              { text: data.beforeMonth.value, style: 'tableCell' },
+              { text: data.lasthMonth.value, style: 'tableCell' },
+              { text: data.cubicMeters, style: 'tableCell' },
+              { text: data.balance, style: 'tableCell' },
+            ],
+            [
+              { text: 4, style: 'tableCell' },
+              { text: formatDate(data.date, 'DD/MM/YYYY'), style: 'tableCell' },
+              { text: data.beforeMonth.value, style: 'tableCell' },
+              { text: data.lasthMonth.value, style: 'tableCell' },
+              { text: data.cubicMeters, style: 'tableCell' },
+              { text: data.balance, style: 'tableCell' },
+            ],
+            [{}, {}, {}, {}, {}, {}],
+            [
+              {},
+              {},
+              {},
+              {},
+              {
+                text: 'Total',
+                fillColor: 'black',
+                color: 'white',
+                alignment: 'center',
+                colSpan: 1,
+                bold: true,
+                style: 'tableCell',
+              },
+              {
+                text: data.amountDue,
+                style: 'tableCell',
+                fillColor: 'black',
+                color: 'white',
+                bold: true,
+              },
             ],
           ],
         },
@@ -223,6 +233,10 @@ export function invoiceBuilt(data: any): TDocumentDefinitions {
         fillColor: '#eeeeee',
         fontSize: 12,
         margin: 4,
+        alignment: 'center',
+      },
+      tableCell: {
+        fontSize: 11,
         alignment: 'center',
       },
     },

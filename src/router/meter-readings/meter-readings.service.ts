@@ -1,23 +1,21 @@
 import {
-  Injectable,
-  NotAcceptableException,
-  NotFoundException,
+    Injectable,
+    NotAcceptableException,
+    NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
+import { getFirstLastDayMonth } from 'src/helpers/calculateEveryone';
+import { formatDate } from 'src/helpers/formatDate';
+import { sequentialMonth } from 'src/helpers/sequentialMonth';
+import { BillingService } from 'src/router/billing/billing.service';
+import { WaterMetersService } from 'src/router/water-meters/water-meters.service';
+import { PaginationDto } from 'src/shared/dto/pagination-query.dto';
+import { FilterDateDto, OrderQueryDTO } from 'src/shared/dto/queries.dto';
 import { CreateMeterReadingDto } from './dto/create-meter-reading.dto';
 import { UpdateMeterReadingDto } from './dto/update-meter-reading.dto';
 import { MeterReading } from './entities/meter-reading.entity';
-import { WaterMetersService } from 'src/router/water-meters/water-meters.service';
-import { getFirstLastDayMonth } from 'src/helpers/calculateEveryone';
-import {
-  FilterDateDto,
-  Order,
-  OrderQueryDTO,
-} from 'src/shared/dto/queries.dto';
-import { PaginationDto } from 'src/shared/dto/pagination-query.dto';
-import { BillingService } from 'src/router/billing/billing.service';
 
 @Injectable()
 export class MeterReadingsService {
@@ -32,28 +30,33 @@ export class MeterReadingsService {
     body: CreateMeterReadingDto,
     file: Express.Multer.File,
   ): Promise<MeterReading> {
-    console.log('🚀 ~ MeterReadingsService ~ body:', body);
+    // console.log('🚀 ~ MeterReadingsService ~ body:', body);
     const waterMeter = await this.waterMeterService.findOneById(
       body.water_meterId,
     ); // Find the water meter
-    const dateParsed = new Date(body.date);
+    // Verificar que la lectura sea secuencial por mes
+    const lastReading = await this.findTheLastMeterReading(body.water_meterId);
+    if (lastReading) {
+      if (!sequentialMonth(lastReading.date, body.date))
+        throw new NotAcceptableException(
+          `Nueva lectura no es secuencial. La última lectura fue en el mes: ${formatDate(lastReading.date)}`,
+        );
+    }
     const existMonth = await this.findRepeatReadingsMonth(
       body.water_meterId,
-      dateParsed,
-    );
-    if (existMonth) {
+      new Date(body.date),
+    ); // Check if there is a reading for the same month
+    if (existMonth)
       throw new NotAcceptableException(`Ya se lecturo para este mes`);
-    }
     // Verificar que el valor no debe ser inferior al anterior
-    const beforeMonthAux = JSON.parse(body.beforeMonth);
-    if (beforeMonthAux.meterValue > body.lastMonthValue) {
+    const beforeMonthAux = body.beforeMonth;
+    if (beforeMonthAux.value > body.lastMonthValue)
       throw new NotAcceptableException(
-        `El valor ${body.lastMonthValue} debe ser mayor al anterior ${beforeMonthAux.meterValue}`,
+        `El valor ${body.lastMonthValue} debe ser mayor al anterior ${beforeMonthAux.value}`,
       );
-    }
-    const { beforeMonth, lastMonthValue, ...result } = body;
-    const beforeV = beforeMonthAux.meterValue;
-    const cubicMeters = lastMonthValue - beforeV;
+    const cubicMeters = body.lastMonthValue - body.beforeMonth.value;
+    const balanceRaw = await this.billingService.calculateBalance(cubicMeters);
+    const balance = typeof balanceRaw === 'number' ? balanceRaw : undefined;
     const body2 = {
       beforeMonth: beforeMonthAux,
       date: body.date,
@@ -62,32 +65,19 @@ export class MeterReadingsService {
         meterValue: body.lastMonthValue,
       },
       cubicMeters: cubicMeters,
-      balance: body.balance || this.calculateBalance(cubicMeters),
+      balance: body.balance || balance,
       description: body.description || '',
       meterImage: file?.filename,
       waterMeter: waterMeter,
     };
 
-    const newReading = await this.meterReadingRepository.create(body2); // Save id Water Meter
+    const newReading = this.meterReadingRepository.create(body2); // Save id Water Meter
     // newReading.waterMeter = waterMeter; // Assign the water meter to the reading
-    return await this.meterReadingRepository.save(newReading);
-    // console.log(newReading);
-    // return newReading;
+    // return await this.meterReadingRepository.save(newReading);
+    console.log(newReading);
+    return newReading;
   }
 
-  // ========== FIND ALL ONE MONTH ===========
-  // async findAllOneMonthMeterReadings(): Promise<MeterReading[]> {
-  //   const mes = 4;
-  //   const anio = 2024;
-  //   const data = await this.meterReadingRepository
-  //     .createQueryBuilder('meter_reading')
-  //     // .where('meter_reading.userId = :userId', { userId: 123 })
-  //     .andWhere('meter_reading.date <= :date', { date: new Date() })
-  //     .getMany();
-  //   //.andWhere('YEAR(meter_reading.date) = :date', { anio });
-  //   console.log(data);
-  //   return data;
-  // }
   // ========== ENCONTRAR LECTURA DUPLICADA AL MES |================
   async findRepeatReadingsMonth(meterId: string, dateParam: Date) {
     const { startDate, endDate } = getFirstLastDayMonth(dateParam); // Return 2 dates start and end of month : 2024-05-20
@@ -143,7 +133,8 @@ export class MeterReadingsService {
   async findTheLastMeterReading(meterId: string) {
     const lastMeterReading = await this.meterReadingRepository
       .createQueryBuilder('meter_reading')
-      .where('meter_reading.waterMeterId = :meterId', {
+      .leftJoinAndSelect('meter_reading.waterMeter', 'waterMeter')
+      .where('meter_reading.water_meter_id = :meterId', {
         meterId: meterId,
       })
       .orderBy('meter_reading.date', 'DESC')
@@ -164,7 +155,23 @@ export class MeterReadingsService {
       .where('meter_reading._id >= :_id', { _id })
       .getOne();
     if (!meterReading) {
-      throw new NotFoundException(`Lectura no encontrado`);
+      throw new NotFoundException(`La lectura no fue encontrada`);
+    }
+    return meterReading;
+    // return `This action returns a #${_idid} meterReading que`;
+  }
+
+  // ========== ENCUENTRA UNA LECTURA DE MEDIDOR POR SU ID  ==========
+  async findReadingsByCI(ci: number) {
+    // const meterReading = await this.meterReadingRepository.findOneBy({ _id });
+    const meterReading = await this.meterReadingRepository
+      .createQueryBuilder('meter_reading')
+      .leftJoinAndSelect('meter_reading.waterMeter', 'waterMeter')
+      .leftJoinAndSelect('meter_reading.invoice', 'invoice')
+      .where('waterMeter.ci >= :ci', { ci })
+      .getOne();
+    if (!meterReading) {
+      throw new NotFoundException(`No se encontro lecturas`);
     }
     return meterReading;
     // return `This action returns a #${_idid} meterReading que`;
@@ -179,13 +186,13 @@ export class MeterReadingsService {
     }
     // Verificar que el valor no debe ser inferior al anterior
     const beforeMonthAux = meterReading.beforeMonth;
-    if (body.lastMonthValue && beforeMonthAux.meterValue > body.lastMonthValue)
+    if (body.lastMonthValue && beforeMonthAux.value > body.lastMonthValue)
       throw new NotAcceptableException(
-        `El valor ${body.lastMonthValue} debe ser mayor al anterior ${beforeMonthAux.meterValue}`,
+        `El valor ${body.lastMonthValue} debe ser mayor al anterior ${beforeMonthAux.value}`,
       );
     // const cubicMeters =
     //   body.lastMonthValue &&
-    //   body.lastMonthValue - meterReading.beforeMonth.meterValue;
+    //   body.lastMonthValue - meterReading.beforeMonth.value;
     // if (body?.balance) {
     //   meterReading['balance'] = this.calculateBalance(cubicMeters);
     // }
@@ -194,7 +201,7 @@ export class MeterReadingsService {
       date: body.date,
       lastMonth: {
         date: body.date,
-        meterValue: body.lastMonthValue,
+        value: body.lastMonthValue,
       },
       balance: body.balance || this.calculateBalance(100),
       description: body.description || meterReading.description,
@@ -245,7 +252,7 @@ export class MeterReadingsService {
   }
 
   // ========== GUARDA UNA INSTANCIA DE LA LECTUTA DEL MEDIDOR  ==========
-  async saveMeterReading(meterReading) {
+  async saveMeterReading(meterReading: MeterReading) {
     return await this.meterReadingRepository.save(meterReading);
   }
 
@@ -287,7 +294,7 @@ export class MeterReadingsService {
     // if (orderBy?.toUpperCase() === 'ASC') order = Order.ASC;
     // if (orderBy?.toUpperCase() === 'DESC') order = Order.DESC;
     console.log(order);
-    const data = await this.meterReadingRepository
+    const [data, total] = await this.meterReadingRepository
       .createQueryBuilder('meter_reading')
       .leftJoinAndSelect('meter_reading.waterMeter', 'waterMeter')
       .leftJoinAndSelect('meter_reading.invoice', 'invoice')
@@ -295,8 +302,94 @@ export class MeterReadingsService {
       .orderBy('meter_reading.date', order.order)
       .limit(limit)
       .offset(offset)
-      .getMany();
-    return data;
+      .getManyAndCount();
+    // .getMany();
+    return {
+      limit,
+      offset,
+      total,
+      readings: data,
+    };
   }
-  // ========== ENCUENTRA TODAS LAS LECTURAS DE UN MES EN ESTADO PAGADO ==========
+
+  // =====================================================================
+  //                    SECCION DE REPORTES
+  // =====================================================================
+
+  // ========== SUMA TODAS LAS LECTURAS ==========
+  async sumAllMeterReadings() {
+    const { sumTotal } = await this.meterReadingRepository
+      .createQueryBuilder('meter_reading')
+      .select('SUM(meter_reading.cubicMeters)', 'sumTotal')
+      .getRawOne();
+    const [readings, total] = await this.meterReadingRepository
+      .createQueryBuilder('meter_reading')
+      .select('meter_reading.cubicMeters')
+      .addSelect('meter_reading.date')
+      .getManyAndCount();
+    return { sumTotal, total, readings };
+  }
+
+  // ========== SUMA TODAS LAS LECTURAS DE UN USUARIO POR CI ==========
+  async sumAllMeterReadingsByCI(ci: number) {
+    const { sumTotal } = await this.meterReadingRepository
+      .createQueryBuilder('meter_reading')
+      .leftJoinAndSelect('meter_reading.waterMeter', 'waterMeter')
+      // .select("DATE_TRUNC('month', meter_reading.date)", 'month')
+      .select('SUM(meter_reading.cubicMeters)', 'sumTotal')
+      .where('waterMeter.ci = :ci', { ci })
+      // .groupBy('cubicMeters')
+      // .getOne();
+      // .getMany();
+      .getRawOne();
+    const [readings, total] = await this.meterReadingRepository
+      .createQueryBuilder('meter_reading')
+      .leftJoinAndSelect('meter_reading.waterMeter', 'waterMeter')
+      // .select("DATE_TRUNC('month', meter_reading.date)", 'month')
+      .select('meter_reading.lastMonth')
+      .addSelect('meter_reading.date')
+      .addSelect('meter_reading.cubicMeters')
+      .where('waterMeter.ci = :ci', { ci })
+      // .groupBy('cubicMeters')
+      // .getOne();
+      .orderBy('meter_reading.date')
+      .getManyAndCount();
+    // .getRawOne();
+    return { sumTotal, total, readings };
+  }
+
+  // ========== SUMA TODAS LAS LECTURAS POR MES ==========
+  async sumAllMeterReadingsByMonth(date: FilterDateDto) {
+    const { startDate, endDate } = date;
+    if (!startDate || !endDate)
+      throw new NotAcceptableException(`El rango de fechas son requeridas`);
+    const { total } = await this.meterReadingRepository
+      .createQueryBuilder('meter_reading')
+      .leftJoinAndSelect('meter_reading.waterMeter', 'waterMeter')
+      // .select("DATE_TRUNC('month', meter_reading.date)", 'month')
+      .select('SUM(meter_reading.cubicMeters)', 'total')
+      // .where('waterMeter.ci = :ci', { ci })
+      // .groupBy('cubicMeters')
+      // .getOne();
+      // .getMany();
+      .getRawOne();
+    const readings = await this.meterReadingRepository
+      .createQueryBuilder('meter_reading')
+      .leftJoinAndSelect('meter_reading.waterMeter', 'waterMeter')
+      // .select("DATE_TRUNC('month', meter_reading.date)", 'month')
+      .select('meter_reading.cubicMeters')
+      .addSelect('meter_reading.date')
+      .where('meter_reading.date >= :startDate', {
+        startDate: startDate,
+      })
+      .andWhere('meter_reading.date <= :endDate', {
+        endDate: endDate,
+      })
+      // .where('waterMeter.ci = :ci', { ci })
+      // .groupBy('cubicMeters')
+      // .getOne();
+      .getMany();
+    // .getRawOne();
+    return { cubics: total, readings };
+  }
 }

@@ -1,11 +1,15 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+    Injectable,
+    NotAcceptableException,
+    NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-import { CreateBillingDto } from './dto/create-billing.dto';
-import { UpdateBillingDto } from './dto/update-billing.dto';
 import { Billing } from 'src/router/billing/entities/billing.entity';
 import { PaginationDto } from 'src/shared/dto/pagination-query.dto';
+import { CreateBillingDto } from './dto/create-billing.dto';
+import { UpdateBillingDto } from './dto/update-billing.dto';
 
 @Injectable()
 export class BillingService {
@@ -13,7 +17,7 @@ export class BillingService {
     @InjectRepository(Billing) private billingRepository: Repository<Billing>,
   ) {}
   async create(createBillingDto: CreateBillingDto) {
-    const newBilling = await this.billingRepository.create(createBillingDto);
+    const newBilling = this.billingRepository.create(createBillingDto);
     return await this.billingRepository.save(newBilling);
   }
 
@@ -42,10 +46,10 @@ export class BillingService {
     cubicMeters: number,
   ): Promise<number | { message: string }> {
     if (cubicMeters === null || cubicMeters < 0) {
-      return {
+      throw new NotAcceptableException({
         message:
           'Debe enviar un número positivo en la URL, por ejemplo, /cubic=12',
-      };
+      });
     }
     // Inicializa el monto base y metros cubicos base
     let total = 0;

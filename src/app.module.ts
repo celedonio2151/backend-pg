@@ -18,6 +18,8 @@ import { InvoicesModule } from 'src/router/invoices/invoices.module';
 import { PrinterModule } from './router/printer/printer.module';
 import { BoardDirectorsModule } from 'src/router/board-directors/board-directors.module';
 import { SeedersModule } from './seeders/seeders.module';
+import { ReportModule } from './router/report/report.module';
+import { BankModule } from './router/bank/bank.module';
 
 @Module({
   imports: [
@@ -39,6 +41,8 @@ import { SeedersModule } from './seeders/seeders.module';
       rootPath: join(__dirname, '..', 'public'),
     }),
     PrinterModule,
+    ReportModule,
+    BankModule,
     // SeedersModule,
   ],
   controllers: [],

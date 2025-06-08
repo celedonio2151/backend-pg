@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { Transform, Type } from 'class-transformer';
+import { Transform } from 'class-transformer';
 import {
   IsBoolean,
   IsDate,
@@ -25,6 +25,9 @@ export class StatusQueryDto {
   status?: boolean;
 }
 
+// ========================================================================
+// Ordenamiento de resultados
+// ========================================================================
 export enum Order {
   ASC = 'ASC',
   DESC = 'DESC',
@@ -36,6 +39,9 @@ export class OrderQueryDTO {
   order?: Order;
 }
 
+// ========================================================================
+// Filtros por nombre
+// ========================================================================
 export class NameQueryDTO {
   @ApiPropertyOptional({
     type: String,
@@ -61,6 +67,9 @@ export class OrderFilterDto {
   to?: string;
 }
 
+// ========================================================================
+// Filtrado por fecha
+// ========================================================================
 export class FilterDateDto {
   @ApiPropertyOptional({
     description: 'Fecha de fin en formato ISO, ej: "2025-04-29T16:52:29.220Z"',
@@ -93,4 +102,27 @@ export class FilterDateDto {
     return date;
   })
   endDate?: Date;
+}
+
+// =======================================================================
+// Consulta para el modo de visualización del PDF : inline | attachment
+// =======================================================================
+
+enum ModePDF {
+  INLINE = 'inline',
+  ATTACHMENT = 'attachment',
+}
+export class ModePDFQueryDto {
+  @ApiPropertyOptional({
+    description: 'Modo de visualización del PDF',
+    example: 'inline',
+    enum: ModePDF,
+    enumName: 'ModePDF',
+    type: String,
+    required: false,
+    default: ModePDF.INLINE,
+  })
+  @IsOptional()
+  @IsEnum(ModePDF)
+  mode?: ModePDF;
 }

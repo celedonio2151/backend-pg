@@ -1,15 +1,34 @@
-import { Type } from 'class-transformer';
+import { ApiProperty } from '@nestjs/swagger';
+import { Transform, Type } from 'class-transformer';
 import {
   IsDate,
-  IsEmpty,
+  IsDateString,
   IsNotEmpty,
   IsNumber,
-  IsObject,
   IsOptional,
   IsPositive,
   IsString,
 } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+
+class BeforeMonthDto {
+  @ApiProperty({
+    description: 'Fecha de la lectura anterior',
+    example: '2025-04-15T00:00:00.000Z',
+  })
+  @IsDateString()
+  @IsDate()
+  @IsNotEmpty()
+  @Type(() => Date)
+  date: Date;
+
+  @ApiProperty({
+    description: 'Valor del medidor en la lectura anterior',
+    example: 120,
+  })
+  @IsNumber()
+  @Type(() => Number)
+  value: number;
+}
 
 export class CreateMeterReadingDto {
   @ApiProperty({
@@ -32,12 +51,24 @@ export class CreateMeterReadingDto {
 
   @ApiProperty({
     description: 'Información del mes anterior (fecha y valor del medidor)',
-    example: '{"date": "2025-04-15T00:00:00.000Z", "meterValue": 120}',
+    type: BeforeMonthDto,
+    example: '{"date": "2025-04-15T00:00:00.000Z", "value": 120}',
   })
-  @IsString()
+  // @IsObject()
+  // @ValidateNested()
   @IsNotEmpty()
-  @Type((Type) => String)
-  readonly beforeMonth: string; // Potencialmente a modificacion el tipo de dato
+  @Type(() => BeforeMonthDto)
+  @Transform(({ value }) => {
+    try {
+      if (typeof value === 'string') {
+        return JSON.parse(value);
+      }
+      return value;
+    } catch (e) {
+      return undefined;
+    }
+  })
+  readonly beforeMonth: BeforeMonthDto;
 
   @ApiProperty({
     description: 'Valor del medidor del mes pasado',
