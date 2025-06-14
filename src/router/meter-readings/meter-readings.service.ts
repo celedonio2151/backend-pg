@@ -1,7 +1,7 @@
 import {
-    Injectable,
-    NotAcceptableException,
-    NotFoundException,
+  Injectable,
+  NotAcceptableException,
+  NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -450,6 +450,7 @@ export class MeterReadingsService {
         'waterMeter.name',
         'waterMeter.surname',
         'waterMeter.ci',
+        'waterMeter.meter_number',
         'invoice.status',
       ])
       .orderBy('meter_reading.date', 'ASC')
