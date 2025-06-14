@@ -392,4 +392,164 @@ export class MeterReadingsService {
     // .getRawOne();
     return { cubics: total, readings };
   }
+
+  // ================================================================
+  //              ANNUAL MENSUAL
+  // ================================================================
+  async monthlyReport(dates: FilterDateDto) {
+    const { startDate, endDate } = dates;
+
+    // Validación de fechas
+    if (!startDate || !endDate) {
+      throw new NotAcceptableException(
+        'Las fechas de inicio y fin son requeridas para el reporte mensual',
+      );
+    }
+
+    // Asegurar que startDate esté al inicio del día y endDate al final del día
+    // const startDateWithTime = new Date(startDate);
+    // startDateWithTime.setUTCHours(0, 0, 0, 0);
+
+    // const endDateWithTime = new Date(endDate);
+    // endDateWithTime.setUTCHours(23, 59, 59, 999);
+
+    const baseQuery = this.meterReadingRepository
+      .createQueryBuilder('meter_reading')
+      .leftJoinAndSelect('meter_reading.waterMeter', 'waterMeter')
+      .leftJoinAndSelect('meter_reading.invoice', 'invoice')
+      .where('meter_reading.date >= :startDate', { startDate })
+      .andWhere('meter_reading.date <= :endDate', { endDate });
+
+    // Obtener todos los totales en una sola consulta
+    const summaryTotals = await baseQuery
+      .clone()
+      .select('SUM(meter_reading.cubicMeters)', 'totalCubicMeters')
+      .addSelect('SUM(meter_reading.balance)', 'totalBalance')
+      .addSelect(
+        'SUM(CASE WHEN invoice.status = true THEN meter_reading.balance ELSE 0 END)',
+        'totalPaid',
+      )
+      .addSelect(
+        'SUM(CASE WHEN invoice.status = false THEN meter_reading.balance ELSE 0 END)',
+        'totalPending',
+      )
+      .getRawOne<{
+        totalCubicMeters: string | null;
+        totalBalance: string | null;
+        totalPaid: string | null;
+        totalPending: string | null;
+      }>();
+
+    // Obtener reportes detallados
+    const [reports, total] = await baseQuery
+      .clone()
+      .select([
+        'meter_reading.cubicMeters',
+        'meter_reading.balance',
+        'meter_reading.date',
+        'waterMeter.name',
+        'waterMeter.surname',
+        'waterMeter.ci',
+        'invoice.status',
+      ])
+      .orderBy('meter_reading.date', 'ASC')
+      .getManyAndCount();
+
+    return {
+      period: {
+        startDate,
+        endDate,
+      },
+      total,
+      summary: {
+        totalCubicMeters: Number(summaryTotals?.totalCubicMeters) || 0,
+        totalBalance: Number(summaryTotals?.totalBalance) || 0,
+        totalPaid: Number(summaryTotals?.totalPaid) || 0,
+        totalPending: Number(summaryTotals?.totalPending) || 0,
+      },
+      reports,
+    };
+  }
+
+  // ================================================================
+  //              ANNUAL REPORT
+  // ================================================================
+  async annualReport(dates: FilterDateDto) {
+    const { startDate, endDate } = dates;
+    // Validación y manejo de fechas undefined
+    if (!startDate || !endDate) {
+      throw new NotAcceptableException(
+        'Las fechas de inicio y fin son requeridas para el reporte anual',
+      );
+    }
+
+    // Asegurar que startDate esté al inicio del día y endDate al final del día
+    // const startDateWithTime = new Date(startDate);
+    // startDateWithTime.setUTCHours(0, 0, 0, 0);
+
+    // const endDateWithTime = new Date(endDate);
+    // endDateWithTime.setUTCHours(23, 59, 59, 999);
+
+    const baseQuery = this.meterReadingRepository
+      .createQueryBuilder('meter_reading')
+      .leftJoinAndSelect('meter_reading.invoice', 'invoice')
+      .where('meter_reading.date >= :startDate', {
+        startDate,
+      })
+      .andWhere('meter_reading.date <= :endDate', { endDate });
+
+    // Get monthly data
+    const monthlyData = await baseQuery
+      .clone()
+      .select('EXTRACT(MONTH FROM meter_reading.date)', 'mes')
+      .addSelect('SUM(meter_reading.cubicMeters)', 'consumo')
+      .addSelect('SUM(meter_reading.balance)', 'facturado')
+      .groupBy('EXTRACT(MONTH FROM meter_reading.date)')
+      .orderBy('EXTRACT(MONTH FROM meter_reading.date)', 'ASC')
+      .getRawMany();
+
+    // Get annual totals
+    const annualTotals = await baseQuery
+      .clone()
+      .select('SUM(meter_reading.cubicMeters)', 'totalCubicMeters')
+      .addSelect('SUM(meter_reading.balance)', 'totalBalance')
+      .getRawOne<{ totalCubicMeters: number; totalBalance: number }>();
+
+    // Mapear nombres de meses
+    const monthNames = [
+      'Enero',
+      'Febrero',
+      'Marzo',
+      'Abril',
+      'Mayo',
+      'Junio',
+      'Julio',
+      'Agosto',
+      'Septiembre',
+      'Octubre',
+      'Noviembre',
+      'Diciembre',
+    ];
+
+    // Crear array con todos los meses, incluso los que no tienen datos
+    const allMonthsData = Array.from({ length: 12 }, (_, index) => {
+      const monthData = monthlyData.find((m) => Number(m.mes) === index + 1);
+      return {
+        mes: monthNames[index],
+        consumo: monthData ? Number(monthData.consumo) || 0 : 0,
+        facturado: monthData ? Number(monthData.facturado) || 0 : 0,
+      };
+    });
+
+    return {
+      startDate,
+      endDate,
+      year: new Date(startDate).getFullYear(),
+      summary: {
+        totalConsumo: Number(annualTotals?.totalCubicMeters) || 0,
+        totalFacturado: Number(annualTotals?.totalBalance) || 0,
+      },
+      monthlyData: allMonthsData,
+    };
+  }
 }

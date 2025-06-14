@@ -1,31 +1,31 @@
 import {
-  Controller,
-  Get,
-  Post,
   Body,
-  Patch,
-  Param,
+  Controller,
   Delete,
-  UseInterceptors,
-  UploadedFile,
+  Get,
+  Param,
+  Patch,
+  Post,
   Query,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
-import { MeterReadingsService } from './meter-readings.service';
-import { CreateMeterReadingDto } from './dto/create-meter-reading.dto';
-import { UpdateMeterReadingDto } from './dto/update-meter-reading.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { fileFilter, fileRename } from 'src/helpers/file.filter';
 import {
-  ApiTags,
+  ApiBody,
+  ApiConsumes,
   ApiOperation,
   ApiParam,
   ApiQuery,
-  ApiBody,
-  ApiConsumes,
+  ApiTags,
 } from '@nestjs/swagger';
-import { FilterDateDto, OrderQueryDTO } from 'src/shared/dto/queries.dto';
+import { diskStorage } from 'multer';
+import { fileFilter, fileRename } from 'src/helpers/file.filter';
 import { PaginationDto } from 'src/shared/dto/pagination-query.dto';
+import { FilterDateDto, OrderQueryDTO } from 'src/shared/dto/queries.dto';
+import { CreateMeterReadingDto } from './dto/create-meter-reading.dto';
+import { UpdateMeterReadingDto } from './dto/update-meter-reading.dto';
+import { MeterReadingsService } from './meter-readings.service';
 
 @ApiTags('Meter Reading')
 @Controller('reading')
@@ -163,4 +163,18 @@ export class MeterReadingsController {
   remove(@Param('id') id: string) {
     return this.meterReadingsService.remove(+id);
   }
+
+  // @Get('report/annual/:year')
+  // @ApiOperation({
+  //   summary: 'Obtener reporte anual de consumo y facturación por mes',
+  // })
+  // @ApiParam({
+  //   name: 'year',
+  //   description: 'Año para el reporte (ejemplo: 2024)',
+  //   type: Number,
+  //   example: 2024,
+  // })
+  // getAnnualReport(@Param('year') year: number) {
+  //   return this.meterReadingsService.annualReport(year);
+  // }
 }

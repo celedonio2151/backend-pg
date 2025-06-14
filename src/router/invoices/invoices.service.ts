@@ -1,8 +1,8 @@
 import { HttpService } from '@nestjs/axios';
 import {
-  Injectable,
-  NotAcceptableException,
-  NotFoundException,
+    Injectable,
+    NotAcceptableException,
+    NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { AxiosError } from 'axios';
@@ -15,9 +15,9 @@ import { formatDate } from 'src/helpers/formatDate';
 import { invoiceBuilt } from 'src/libs/invoice';
 import { ReceiveNotificationDTO } from 'src/router/invoices/dto/recieve-notification.dto';
 import {
-  BodyGetTokenBNB,
-  InvoicePDF,
-  ReponseGetTokenBNB,
+    BodyGetTokenBNB,
+    InvoicePDF,
+    ReponseGetTokenBNB,
 } from 'src/router/invoices/interfaces/interfacesBNB.ForQR';
 import { MeterReadingsService } from 'src/router/meter-readings/meter-readings.service';
 import { PrinterService } from 'src/router/printer/printer.service';
@@ -273,6 +273,7 @@ export class InvoicesService {
       destinationAccountId: '1',
     };
     const response = await this.bankService.generateQR(body);
+    console.log(response);
     const resClient = {
       bankBNB: response,
       aditional: {
