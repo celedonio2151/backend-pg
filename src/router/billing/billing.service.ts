@@ -1,7 +1,7 @@
 import {
-    Injectable,
-    NotAcceptableException,
-    NotFoundException,
+  Injectable,
+  NotAcceptableException,
+  NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -42,6 +42,9 @@ export class BillingService {
     return billing;
   }
 
+  // ================================================================
+  //          CALCULATE BALANCE
+  // ================================================================
   async calculateBalance(
     cubicMeters: number,
   ): Promise<number | { message: string }> {

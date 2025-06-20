@@ -1,27 +1,26 @@
 import {
-  Controller,
-  Get,
-  Post,
   Body,
-  Patch,
-  Param,
+  Controller,
   Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
   Query,
 } from '@nestjs/common';
-import { WaterMetersService } from './water-meters.service';
-import { CreateWaterMeterDto } from './dto/create-water-meter.dto';
-import { UpdateWaterMeterDto } from './dto/update-water-meter.dto';
 import {
-  ApiTags,
+  ApiBody,
   ApiOperation,
   ApiParam,
   ApiQuery,
-  ApiBody,
   ApiResponse,
+  ApiTags,
 } from '@nestjs/swagger';
 import { PaginationDto } from 'src/shared/dto/pagination-query.dto';
 import { FilterDateDto, StatusQueryDto } from 'src/shared/dto/queries.dto';
-import { WaterMeter } from 'src/router/water-meters/entities/water-meter.entity';
+import { CreateWaterMeterDto } from './dto/create-water-meter.dto';
+import { UpdateWaterMeterDto } from './dto/update-water-meter.dto';
+import { WaterMetersService } from './water-meters.service';
 
 @ApiTags('Medidores de Agua')
 @Controller('meter')

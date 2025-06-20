@@ -1,16 +1,12 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { getFirstLastDayYear } from 'src/helpers/calculateEveryone';
+import { PaginationDto } from 'src/shared/dto/pagination-query.dto';
+import { FilterDateDto } from 'src/shared/dto/queries.dto';
+import { Repository } from 'typeorm';
 import { CreateWaterMeterDto } from './dto/create-water-meter.dto';
 import { UpdateWaterMeterDto } from './dto/update-water-meter.dto';
-import { InjectRepository } from '@nestjs/typeorm';
 import { WaterMeter } from './entities/water-meter.entity';
-import { Repository } from 'typeorm';
-import { UserService } from 'src/router/user/user.service';
-import { PaginationDto } from 'src/shared/dto/pagination-query.dto';
-import {
-  getFirstLastDayMonth,
-  getFirstLastDayYear,
-} from 'src/helpers/calculateEveryone';
-import { FilterDateDto } from 'src/shared/dto/queries.dto';
 
 @Injectable()
 export class WaterMetersService {
@@ -26,7 +22,7 @@ export class WaterMetersService {
         `El medidor de agua ${body.meter_number} ya existe`,
       );
     // Buscar el usuario antes de insertar
-    const waterMeter = await this.waterMeterRepository.create(body);
+    const waterMeter = this.waterMeterRepository.create(body);
     return this.waterMeterRepository.save(waterMeter);
   }
   async createOnlyMeter(body: CreateWaterMeterDto) {
@@ -37,7 +33,7 @@ export class WaterMetersService {
       );
     const waterMeter = await this.findOneByCIRaw(body.ci);
     if (waterMeter) {
-      const newWaterMeter = await this.waterMeterRepository.create({
+      const newWaterMeter = this.waterMeterRepository.create({
         ...body,
         name: waterMeter.name,
         surname: waterMeter.surname,
@@ -136,6 +132,7 @@ export class WaterMetersService {
   }
 
   async findOneById(id: string) {
+    console.log(id);
     const meter = await this.waterMeterRepository.findOneBy({ _id: id });
     if (!meter)
       throw new NotFoundException(`Medidor de agua ${id} no registrado`);

@@ -1,7 +1,7 @@
 import {
-  Injectable,
-  NotAcceptableException,
-  NotFoundException,
+    Injectable,
+    NotAcceptableException,
+    NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -289,11 +289,6 @@ export class MeterReadingsService {
     pagination: PaginationDto,
   ) {
     const { limit, offset } = pagination;
-    console.log(pagination);
-    // let order;
-    // if (orderBy?.toUpperCase() === 'ASC') order = Order.ASC;
-    // if (orderBy?.toUpperCase() === 'DESC') order = Order.DESC;
-    console.log(order);
     const [data, total] = await this.meterReadingRepository
       .createQueryBuilder('meter_reading')
       .leftJoinAndSelect('meter_reading.waterMeter', 'waterMeter')
@@ -303,7 +298,6 @@ export class MeterReadingsService {
       .limit(limit)
       .offset(offset)
       .getManyAndCount();
-    // .getMany();
     return {
       limit,
       offset,
@@ -322,12 +316,12 @@ export class MeterReadingsService {
       .createQueryBuilder('meter_reading')
       .select('SUM(meter_reading.cubicMeters)', 'sumTotal')
       .getRawOne();
-    const [readings, total] = await this.meterReadingRepository
+    const [readings, totalReadings] = await this.meterReadingRepository
       .createQueryBuilder('meter_reading')
       .select('meter_reading.cubicMeters')
       .addSelect('meter_reading.date')
       .getManyAndCount();
-    return { sumTotal, total, readings };
+    return { sumTotal, totalReadings, readings };
   }
 
   // ========== SUMA TODAS LAS LECTURAS DE UN USUARIO POR CI ==========
@@ -342,7 +336,7 @@ export class MeterReadingsService {
       // .getOne();
       // .getMany();
       .getRawOne();
-    const [readings, total] = await this.meterReadingRepository
+    const [readings, totalReadings] = await this.meterReadingRepository
       .createQueryBuilder('meter_reading')
       .leftJoinAndSelect('meter_reading.waterMeter', 'waterMeter')
       // .select("DATE_TRUNC('month', meter_reading.date)", 'month')
@@ -354,8 +348,8 @@ export class MeterReadingsService {
       // .getOne();
       .orderBy('meter_reading.date')
       .getManyAndCount();
-    // .getRawOne();
-    return { sumTotal, total, readings };
+    // .getRaw();
+    return { sumTotal, totalReadings, readings };
   }
 
   // ========== SUMA TODAS LAS LECTURAS POR MES ==========

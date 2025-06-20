@@ -1,5 +1,9 @@
 Al calcular los saldos por consumo, si excede a las formulas registradas mejorar o devolver el unltimo saldo en billing.service.ts
 
 
-Para graficas 
+Para graficas
 * Primero listar leturas por meses, luego sumar esas lecturas y devolver el total del mes, mas una fecha promedio del mes.
+
+
+Error o bug al hacer peticion en la ruta
+/meter/412345234153324v1f3er21fe3rf
