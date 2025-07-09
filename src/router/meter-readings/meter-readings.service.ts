@@ -430,10 +430,10 @@ export class MeterReadingsService {
         'totalPending',
       )
       .getRawOne<{
-        totalCubicMeters: string | null;
-        totalBalance: string | null;
-        totalPaid: string | null;
-        totalPending: string | null;
+        totalCubicMeters: string;
+        totalBalance: string;
+        totalPaid: string;
+        totalPending: string;
       }>();
 
     // Obtener reportes detallados
@@ -459,10 +459,11 @@ export class MeterReadingsService {
       },
       total,
       summary: {
-        totalCubicMeters: Number(summaryTotals?.totalCubicMeters) || 0,
-        totalBalance: Number(summaryTotals?.totalBalance) || 0,
+        totalCubes: Number(summaryTotals?.totalCubicMeters) || 0,
+        totalBilled: Number(summaryTotals?.totalBalance) || 0,
         totalPaid: Number(summaryTotals?.totalPaid) || 0,
-        totalPending: Number(summaryTotals?.totalPending) || 0,
+        pendingAmount: Number(summaryTotals?.totalPending) || 0,
+        paidAmount: 0,
       },
       reports,
     };
@@ -503,14 +504,27 @@ export class MeterReadingsService {
       .addSelect('SUM(meter_reading.balance)', 'facturado')
       .groupBy('EXTRACT(MONTH FROM meter_reading.date)')
       .orderBy('EXTRACT(MONTH FROM meter_reading.date)', 'ASC')
-      .getRawMany();
+      .getRawMany<{ mes: number; consumo: number; facturado: number }>();
 
     // Get annual totals
     const annualTotals = await baseQuery
       .clone()
       .select('SUM(meter_reading.cubicMeters)', 'totalCubicMeters')
-      .addSelect('SUM(meter_reading.balance)', 'totalBalance')
-      .getRawOne<{ totalCubicMeters: number; totalBalance: number }>();
+      .addSelect('SUM(invoice.amountDue)', 'totalBalance')
+      .addSelect(
+        'SUM(CASE WHEN invoice.isPaid = false THEN invoice.amountDue ELSE 0 END)',
+        'pendingAmount',
+      )
+      .addSelect(
+        'SUM(CASE WHEN invoice.isPaid = true THEN invoice.amountDue ELSE 0 END)',
+        'paidAmount',
+      )
+      .getRawOne<{
+        totalCubicMeters: number;
+        totalBalance: number;
+        pendingAmount: number;
+        paidAmount: number;
+      }>();
 
     // Mapear nombres de meses
     const monthNames = [
@@ -539,12 +553,17 @@ export class MeterReadingsService {
     });
 
     return {
-      startDate,
-      endDate,
+      period: {
+        startDate,
+        endDate,
+      },
       year: new Date(startDate).getFullYear(),
       summary: {
-        totalConsumo: Number(annualTotals?.totalCubicMeters) || 0,
-        totalFacturado: Number(annualTotals?.totalBalance) || 0,
+        totalMeters: allMonthsData.length,
+        totalCubes: Number(annualTotals?.totalCubicMeters) || 0,
+        totalBilled: Number(annualTotals?.totalBalance) || 0,
+        pendingAmount: Number(annualTotals?.pendingAmount) || 0,
+        paidAmount: Number(annualTotals?.paidAmount) || 0,
       },
       monthlyData: allMonthsData,
     };
