@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { getFirstLastDayYear } from 'src/helpers/calculateEveryone';
 import { PaginationDto } from 'src/shared/dto/pagination-query.dto';
@@ -153,5 +157,80 @@ export class WaterMetersService {
 
   remove(id: string) {
     return `This action removes a #${id} waterMeter`;
+  }
+
+  // ------------------------------------------------------------------------
+  // ANNUAL REPORT BY METER
+  // ------------------------------------------------------------------------
+  async annualReportByMeter(dates: FilterDateDto) {
+    const { startDate, endDate } = dates;
+    if (!startDate || !endDate)
+      throw new BadRequestException('Fecha de inicio y fin son requeridas');
+
+    const baseQuery = this.waterMeterRepository
+      .createQueryBuilder('waterMeter')
+      .leftJoin('waterMeter.meterReadings', 'meter_reading')
+      .leftJoin('meter_reading.invoice', 'invoice')
+      .where('meter_reading.date >= :startDate', { startDate })
+      .andWhere('meter_reading.date <= :endDate', { endDate });
+
+    const [readings, totalMeters] = await this.waterMeterRepository
+      .createQueryBuilder('waterMeter')
+      .leftJoin('waterMeter.meterReadings', 'meter_reading')
+      .leftJoin('meter_reading.invoice', 'invoice')
+      .where('meter_reading.date >= :startDate', { startDate })
+      .andWhere('meter_reading.date <= :endDate', { endDate })
+      .select([
+        // Campos del waterMeter necesarios para construir el objeto
+        // 'waterMeter._id',
+        'waterMeter.ci',
+        'waterMeter.name',
+        'waterMeter.surname',
+        'waterMeter.meter_number',
+        'waterMeter.status',
+        // Campos del meter_reading necesarios
+        'meter_reading._id',
+        'meter_reading.date',
+        'meter_reading.cubicMeters',
+        'meter_reading.balance',
+        // Campos del invoice necesarios
+        'invoice._id',
+        'invoice.amountDue',
+        'invoice.isPaid',
+        'invoice.status',
+      ])
+      .orderBy('meter_reading.date', 'ASC')
+      .getManyAndCount();
+
+    const summary = await baseQuery
+      .clone()
+      .select([
+        'SUM(meter_reading.cubicMeters) as totalCubes',
+        'SUM(invoice.amountDue) as totalBilled',
+        'SUM(CASE WHEN invoice.isPaid = false THEN invoice.amountDue ELSE 0 END) as pendingAmount',
+        'SUM(CASE WHEN invoice.isPaid = true THEN invoice.amountDue ELSE 0 END) as paidAmount',
+      ])
+      .getRawOne<{
+        totalCubes: string;
+        totalBilled: string;
+        pendingAmount: string;
+        paidAmount: string;
+      }>();
+
+    return {
+      period: {
+        startDate,
+        endDate,
+      },
+      year: startDate.getFullYear(),
+      summary: {
+        totalMeters,
+        totalCubes: Number(summary?.totalCubes ?? 0),
+        totalBilled: Number(summary?.totalBilled ?? 0),
+        pendingAmount: Number(summary?.pendingAmount ?? 0),
+        paidAmount: Number(summary?.paidAmount ?? 0),
+      },
+      readings,
+    };
   }
 }

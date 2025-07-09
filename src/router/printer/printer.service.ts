@@ -22,4 +22,7 @@ export class PrinterService {
   createPDF(docDefinition: TDocumentDefinitions) {
     return this.printer.createPdfKitDocument(docDefinition, this.options);
   }
+  createPDFDouble(docDefinition: TDocumentDefinitions) {
+    return this.printer.createPdfKitDocument(docDefinition, this.options);
+  }
 }

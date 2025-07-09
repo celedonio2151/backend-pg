@@ -1,11 +1,14 @@
 import { Injectable, NotAcceptableException } from '@nestjs/common';
 import { MeterReadingsService } from 'src/router/meter-readings/meter-readings.service';
 import { FilterDateDto } from 'src/shared/dto/queries.dto';
-import { UpdateReportDto } from './dto/update-report.dto';
+import { WaterMetersService } from '../water-meters/water-meters.service';
 
 @Injectable()
 export class ReportService {
-  constructor(private readonly readingService: MeterReadingsService) {}
+  constructor(
+    private readonly readingService: MeterReadingsService,
+    private readonly waterMeterService: WaterMetersService,
+  ) {}
 
   async findAll() {
     return await this.readingService.sumAllMeterReadings();
@@ -17,6 +20,14 @@ export class ReportService {
 
   async sumAndListCubicMeters(ci: number) {
     return await this.readingService.sumAllMeterReadingsByCI(ci);
+  }
+
+  async sumAndListCubicMetersByMonth(date: FilterDateDto) {
+    return await this.readingService.sumAllMeterReadingsByMonth(date);
+  }
+
+  async annualReportByMeter(date: FilterDateDto) {
+    return await this.waterMeterService.annualReportByMeter(date);
   }
 
   async monthlyReport(dates: FilterDateDto) {
@@ -33,13 +44,5 @@ export class ReportService {
       throw new NotAcceptableException('Fecha de inicio y fin son requeridas');
     }
     return await this.readingService.annualReport(dates);
-  }
-
-  update(id: number, updateReportDto: UpdateReportDto) {
-    return `This action updates a #${id} report`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} report`;
   }
 }

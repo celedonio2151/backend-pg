@@ -1,26 +1,26 @@
 import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-  Put,
-  Query,
+    Body,
+    Controller,
+    Delete,
+    Get,
+    Param,
+    Patch,
+    Post,
+    Put,
+    Query,
 } from '@nestjs/common';
-import { BillingService } from './billing.service';
-import { CreateBillingDto } from './dto/create-billing.dto';
-import { UpdateBillingDto } from './dto/update-billing.dto';
 import {
-  ApiTags,
-  ApiOperation,
-  ApiParam,
-  ApiQuery,
-  ApiBody,
-  ApiResponse,
+    ApiBody,
+    ApiOperation,
+    ApiParam,
+    ApiQuery,
+    ApiResponse,
+    ApiTags,
 } from '@nestjs/swagger';
 import { PaginationDto } from 'src/shared/dto/pagination-query.dto';
+import { BillingService } from './billing.service';
+import { CreateBillingDto } from './dto/create-billing.dto';
+import { UpdateBillingDto, UpdateBillingsDto } from './dto/update-billing.dto';
 import { Billing } from './entities/billing.entity';
 
 @ApiTags('Billing | Facturación | Tarifa')
@@ -113,6 +113,7 @@ export class BillingController {
     type: Billing,
   })
   update(@Param('id') id: string, @Body() body: UpdateBillingDto) {
+    console.log(body);
     return this.billingService.update(id, body);
   }
 
@@ -130,7 +131,7 @@ export class BillingController {
     description: 'Tarifas actualizadas exitosamente',
     type: [Billing],
   })
-  updateMultipleBillings(@Body() billings: UpdateBillingDto[]) {
+  updateMultipleBillings(@Body() billings: UpdateBillingsDto[]) {
     return this.billingService.updateMultipleBillings(billings);
   }
 

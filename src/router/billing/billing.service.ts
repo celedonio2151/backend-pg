@@ -1,7 +1,7 @@
 import {
-  Injectable,
-  NotAcceptableException,
-  NotFoundException,
+    Injectable,
+    NotAcceptableException,
+    NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -9,7 +9,7 @@ import { Repository } from 'typeorm';
 import { Billing } from 'src/router/billing/entities/billing.entity';
 import { PaginationDto } from 'src/shared/dto/pagination-query.dto';
 import { CreateBillingDto } from './dto/create-billing.dto';
-import { UpdateBillingDto } from './dto/update-billing.dto';
+import { UpdateBillingDto, UpdateBillingsDto } from './dto/update-billing.dto';
 
 @Injectable()
 export class BillingService {
@@ -80,7 +80,7 @@ export class BillingService {
   }
 
   async updateMultipleBillings(
-    billings: UpdateBillingDto[],
+    billings: UpdateBillingsDto[],
   ): Promise<Billing[]> {
     const updatedBillings: Billing[] = [];
 

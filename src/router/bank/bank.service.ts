@@ -3,14 +3,14 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
 import {
-    CreateBankDto,
-    GenerateQrDto,
-    TokenRequestDto,
+  CreateBankDto,
+  GenerateQrDto,
+  TokenRequestDto,
 } from './dto/create-bank.dto';
 import { UpdateBankDto } from './dto/update-bank.dto';
 import {
-    GenerateQrResponse,
-    TokenResponse,
+  GenerateQrResponse,
+  TokenResponse,
 } from './interfaces/bank_interfaces';
 
 @Injectable()

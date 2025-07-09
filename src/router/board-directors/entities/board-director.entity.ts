@@ -2,12 +2,10 @@ import { AuditableEntity } from 'src/configs/auditable-entity.config';
 import { User } from 'src/router/user/entities/user.entity';
 import {
   Column,
-  CreateDateColumn,
   Entity,
   JoinColumn,
   OneToOne,
   PrimaryGeneratedColumn,
-  UpdateDateColumn,
 } from 'typeorm';
 
 @Entity()
@@ -23,6 +21,9 @@ export class BoardDirector extends AuditableEntity {
 
   @Column()
   positionRole: string;
+
+  @Column()
+  order: number; // Para mantener el orden jerárquico (1 siendo el más alto)
 
   @Column({ default: null, nullable: true })
   description: string;

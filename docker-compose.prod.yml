@@ -31,3 +31,6 @@ volumes:
 
 # Ejecutar en produccion
 # docker-compose -f docker-compose.prod.yml up --build -d
+
+# Para ver log en CapRover:
+# docker service logs srv-captain--ml-agua-app --since 60m --follow

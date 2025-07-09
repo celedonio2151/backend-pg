@@ -1,7 +1,7 @@
 import {
-    Injectable,
-    NotAcceptableException,
-    NotFoundException,
+  Injectable,
+  NotAcceptableException,
+  NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -312,10 +312,13 @@ export class MeterReadingsService {
 
   // ========== SUMA TODAS LAS LECTURAS ==========
   async sumAllMeterReadings() {
-    const { sumTotal } = await this.meterReadingRepository
+    const resultRaw = await this.meterReadingRepository
       .createQueryBuilder('meter_reading')
       .select('SUM(meter_reading.cubicMeters)', 'sumTotal')
-      .getRawOne();
+      .getRawOne<{ sumTotal: string | null }>();
+
+    const sumTotal = Number(resultRaw?.sumTotal ?? 0);
+
     const [readings, totalReadings] = await this.meterReadingRepository
       .createQueryBuilder('meter_reading')
       .select('meter_reading.cubicMeters')
@@ -326,29 +329,27 @@ export class MeterReadingsService {
 
   // ========== SUMA TODAS LAS LECTURAS DE UN USUARIO POR CI ==========
   async sumAllMeterReadingsByCI(ci: number) {
-    const { sumTotal } = await this.meterReadingRepository
+    const rawResult = await this.meterReadingRepository
       .createQueryBuilder('meter_reading')
-      .leftJoinAndSelect('meter_reading.waterMeter', 'waterMeter')
-      // .select("DATE_TRUNC('month', meter_reading.date)", 'month')
+      .leftJoin('meter_reading.waterMeter', 'waterMeter')
       .select('SUM(meter_reading.cubicMeters)', 'sumTotal')
       .where('waterMeter.ci = :ci', { ci })
-      // .groupBy('cubicMeters')
-      // .getOne();
-      // .getMany();
-      .getRawOne();
+      .getRawOne<{ sumTotal: string | null }>();
+
+    const sumTotal = Number(rawResult?.sumTotal ?? 0);
+
     const [readings, totalReadings] = await this.meterReadingRepository
       .createQueryBuilder('meter_reading')
       .leftJoinAndSelect('meter_reading.waterMeter', 'waterMeter')
-      // .select("DATE_TRUNC('month', meter_reading.date)", 'month')
       .select('meter_reading.lastMonth')
       .addSelect('meter_reading.date')
       .addSelect('meter_reading.cubicMeters')
+      .addSelect('waterMeter.ci')
+      .addSelect('waterMeter.name')
+      .addSelect('waterMeter.surname')
       .where('waterMeter.ci = :ci', { ci })
-      // .groupBy('cubicMeters')
-      // .getOne();
-      .orderBy('meter_reading.date')
+      .orderBy('meter_reading.date', 'ASC')
       .getManyAndCount();
-    // .getRaw();
     return { sumTotal, totalReadings, readings };
   }
 
@@ -357,38 +358,39 @@ export class MeterReadingsService {
     const { startDate, endDate } = date;
     if (!startDate || !endDate)
       throw new NotAcceptableException(`El rango de fechas son requeridas`);
-    const { total } = await this.meterReadingRepository
+
+    // Suma total
+    const rawTotal = await this.meterReadingRepository
       .createQueryBuilder('meter_reading')
-      .leftJoinAndSelect('meter_reading.waterMeter', 'waterMeter')
-      // .select("DATE_TRUNC('month', meter_reading.date)", 'month')
-      .select('SUM(meter_reading.cubicMeters)', 'total')
-      // .where('waterMeter.ci = :ci', { ci })
-      // .groupBy('cubicMeters')
-      // .getOne();
-      // .getMany();
-      .getRawOne();
-    const readings = await this.meterReadingRepository
+      .leftJoin('meter_reading.waterMeter', 'waterMeter')
+      .select('SUM(meter_reading.cubicMeters)', 'sumTotal')
+      .getRawOne<{ sumTotal: string | null }>();
+
+    const sumTotal = Number(rawTotal?.sumTotal ?? 0);
+
+    // Suma mensual
+    const monthlyRaw = await this.meterReadingRepository
       .createQueryBuilder('meter_reading')
-      .leftJoinAndSelect('meter_reading.waterMeter', 'waterMeter')
-      // .select("DATE_TRUNC('month', meter_reading.date)", 'month')
-      .select('meter_reading.cubicMeters')
-      .addSelect('meter_reading.date')
-      .where('meter_reading.date >= :startDate', {
-        startDate: startDate,
-      })
-      .andWhere('meter_reading.date <= :endDate', {
-        endDate: endDate,
-      })
-      // .where('waterMeter.ci = :ci', { ci })
-      // .groupBy('cubicMeters')
-      // .getOne();
-      .getMany();
-    // .getRawOne();
-    return { cubics: total, readings };
+      .leftJoin('meter_reading.waterMeter', 'waterMeter')
+      .select([
+        `DATE_FORMAT(meter_reading.date, '%Y-%m') AS month`,
+        `SUM(meter_reading.cubicMeters) AS totalCubicMeters`,
+      ])
+      .groupBy('month')
+      .orderBy('month', 'ASC')
+      .getRawMany<{ month: string; totalCubicMeters: string }>();
+
+    // Convertir a números
+    const monthly = monthlyRaw.map((row) => ({
+      month: row.month,
+      totalCubicMeters: Number(row.totalCubicMeters),
+    }));
+
+    return { cubics: sumTotal, readings: monthly };
   }
 
   // ================================================================
-  //              ANNUAL MENSUAL
+  //              MENSUAL REPORT
   // ================================================================
   async monthlyReport(dates: FilterDateDto) {
     const { startDate, endDate } = dates;
@@ -545,6 +547,62 @@ export class MeterReadingsService {
         totalFacturado: Number(annualTotals?.totalBalance) || 0,
       },
       monthlyData: allMonthsData,
+    };
+  }
+
+  // ================================================================
+  //              ANNUAL REPORT BY METER
+  // ================================================================
+  async sumMeterReadingsByMeter(dates: FilterDateDto) {
+    const { startDate, endDate } = dates;
+    // Validación y manejo de fechas undefined
+    if (!startDate || !endDate) {
+      throw new NotAcceptableException(
+        'Las fechas de inicio y fin son requeridas para el reporte anual',
+      );
+    }
+    const baseQuery = this.meterReadingRepository
+      .createQueryBuilder('meter_reading')
+      .leftJoinAndSelect('meter_reading.waterMeter', 'waterMeter')
+      .leftJoinAndSelect('meter_reading.invoice', 'invoice')
+      .where('meter_reading.date >= :startDate', {
+        startDate,
+      })
+      .andWhere('meter_reading.date <= :endDate', { endDate });
+
+    // Get monthly data
+    const [monthlyData, totalReadings] = await baseQuery
+      .clone()
+      .select('meter_reading.date')
+      .addSelect('meter_reading.cubicMeters')
+      .addSelect('meter_reading.balance')
+      .addSelect('waterMeter.name')
+      .addSelect('waterMeter.surname')
+      .addSelect('waterMeter.ci')
+      .addSelect('waterMeter.meter_number')
+      .addSelect('invoice')
+      .orderBy('meter_reading.date', 'ASC')
+      .getManyAndCount();
+
+    // Get annual totals
+    const annualTotals = await baseQuery
+      .clone()
+      .select('SUM(meter_reading.cubicMeters)', 'totalCubicMeters')
+      .addSelect('SUM(meter_reading.balance)', 'totalBalance')
+      .getRawOne<{ totalCubicMeters: number; totalBalance: number }>();
+
+    return {
+      period: {
+        startDate,
+        endDate,
+      },
+      year: new Date(startDate).getFullYear(),
+      summary: {
+        totalReadings,
+        totalCubes: Number(annualTotals?.totalCubicMeters) || 0,
+        totalBilled: Number(annualTotals?.totalBalance) || 0,
+      },
+      monthlyData,
     };
   }
 }

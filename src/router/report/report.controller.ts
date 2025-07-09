@@ -1,14 +1,10 @@
 import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Param,
-  Patch,
-  Query,
+    Controller,
+    Get,
+    Param,
+    Query
 } from '@nestjs/common';
 import { FilterDateDto } from 'src/shared/dto/queries.dto';
-import { UpdateReportDto } from './dto/update-report.dto';
 import { ReportService } from './report.service';
 
 @Controller('report')
@@ -33,8 +29,8 @@ export class ReportController {
   }
 
   @Get('/sum-by-month/global')
-  sumByMonth(@Param('ci') ci: number) {
-    return this.reportService.sumAndListCubicMeters(ci);
+  sumByMonth(@Query() date: FilterDateDto) {
+    return this.reportService.sumAndListCubicMetersByMonth(date);
   }
 
   @Get('/monthly')
@@ -47,13 +43,8 @@ export class ReportController {
     return this.reportService.annualReport(dates);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateReportDto: UpdateReportDto) {
-    return this.reportService.update(+id, updateReportDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.reportService.remove(+id);
+  @Get('/annual-by-meter')
+  reportAnnualByMeter(@Query() dates: FilterDateDto) {
+    return this.reportService.annualReportByMeter(dates);
   }
 }

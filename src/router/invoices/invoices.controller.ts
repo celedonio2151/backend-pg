@@ -58,10 +58,11 @@ export class InvoicesController {
     const modePDF = mode.mode || 'inline';
     const pdfDoc =
       await this.invoicesService.generatePDFDocumentDouble(readingId);
-    res.setHeader(
-      'Content-Disposition',
-      `${modePDF}; filename=example-double.pdf`,
-    );
+    const filename = generateNamePDF();
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `${modePDF}; filename=${filename}.pdf`,
+    });
     pdfDoc.info.Title = 'Recibo de Agua potable 2025';
     pdfDoc.pipe(res);
     pdfDoc.end();

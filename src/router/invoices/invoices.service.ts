@@ -1,8 +1,8 @@
 import { HttpService } from '@nestjs/axios';
 import {
-    Injectable,
-    NotAcceptableException,
-    NotFoundException,
+  Injectable,
+  NotAcceptableException,
+  NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { AxiosError } from 'axios';
@@ -15,9 +15,9 @@ import { formatDate } from 'src/helpers/formatDate';
 import { invoiceBuilt } from 'src/libs/invoice';
 import { ReceiveNotificationDTO } from 'src/router/invoices/dto/recieve-notification.dto';
 import {
-    BodyGetTokenBNB,
-    InvoicePDF,
-    ReponseGetTokenBNB,
+  BodyGetTokenBNB,
+  InvoicePDF,
+  ReponseGetTokenBNB,
 } from 'src/router/invoices/interfaces/interfacesBNB.ForQR';
 import { MeterReadingsService } from 'src/router/meter-readings/meter-readings.service';
 import { PrinterService } from 'src/router/printer/printer.service';
@@ -53,9 +53,8 @@ export class InvoicesService {
       })
       .getOne();
     console.log('🚀 ~ invoice:', invoice);
-    if (!invoice) {
+    if (!invoice)
       throw new NotFoundException(`El recibo aun no fue generado o no existe`);
-    }
     const body: InvoicePDF = {
       ci: invoice.meterReading.waterMeter.ci,
       // number: generateCodeNumber(Number(1)),
@@ -83,19 +82,18 @@ export class InvoicesService {
 
   // ========== GENERA UN RECIBO DE PAGO  ==========
   async generatePDFDocumentDouble(readingId: string) {
-    const meterReading =
+    const reading =
       await this.meterReadingService.findMeterReadingById(readingId);
     const invoice = await this.invoicesRepository
       .createQueryBuilder('invoice')
       .leftJoinAndSelect('invoice.meterReading', 'meter_reading')
       .leftJoinAndSelect('meter_reading.waterMeter', 'waterMeter')
-      .where('invoice.meterReading_id	 = :meterReadingId', {
-        meterReadingId: meterReading._id,
+      .where('invoice.meter_reading_id	 = :meterReadingId', {
+        meterReadingId: reading._id,
       })
       .getOne();
-    if (!invoice) {
+    if (!invoice)
       throw new NotFoundException(`El recibo aun no fue generado o no existe`);
-    }
     const body: InvoicePDF = {
       ci: invoice.meterReading.waterMeter.ci,
       // number: generateCodeNumber(Number(1)),
@@ -118,7 +116,7 @@ export class InvoicesService {
       status: invoice.status,
     };
     // console.log('🚀body:', body);
-    return this.printerService.createPDF(invoiceBuilt(body));
+    return this.printerService.createPDFDouble(invoiceBuilt(body));
   }
 
   // ========== CREA AUTOMACAMENTE LOS RECIBOS CADA FECHA DEL DIA DEL MES  ==========
