@@ -1,26 +1,25 @@
 import {
-  Controller,
-  Get,
-  Post,
   Body,
-  Patch,
-  Param,
+  Controller,
   Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
   Query,
-  ParseBoolPipe,
 } from '@nestjs/common';
-import { BoardDirectorsService } from './board-directors.service';
-import { CreateBoardDirectorDto } from './dto/create-board-director.dto';
-import { UpdateBoardDirectorDto } from './dto/update-board-director.dto';
 import {
-  ApiTags,
+  ApiBody,
   ApiOperation,
   ApiParam,
   ApiQuery,
-  ApiBody,
+  ApiTags,
 } from '@nestjs/swagger';
 import { PaginationDto } from 'src/shared/dto/pagination-query.dto';
 import { StatusQueryDto } from 'src/shared/dto/queries.dto';
+import { BoardDirectorsService } from './board-directors.service';
+import { CreateBoardDirectorDto } from './dto/create-board-director.dto';
+import { UpdateBoardDirectorDto } from './dto/update-board-director.dto';
 
 @ApiTags('Mesa Directiva')
 @Controller('board-directors')
@@ -44,10 +43,7 @@ export class BoardDirectorsController {
     type: Boolean,
     description: 'Filtrar por estado (true o false)',
   })
-  findAll(
-    @Query() pagination: PaginationDto,
-    @Query('status') status: StatusQueryDto,
-  ) {
+  findAll(@Query() pagination: PaginationDto, @Query() status: StatusQueryDto) {
     return this.boardDirectorsService.findAll(pagination, status);
   }
 
@@ -83,7 +79,7 @@ export class BoardDirectorsController {
     @Param('id') id: string,
     @Body() updateBoardDirectorDto: UpdateBoardDirectorDto,
   ) {
-    return this.boardDirectorsService.update(+id, updateBoardDirectorDto);
+    return this.boardDirectorsService.update(id, updateBoardDirectorDto);
   }
 
   @Delete(':id')

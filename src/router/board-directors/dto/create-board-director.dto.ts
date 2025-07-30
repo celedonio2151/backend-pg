@@ -1,11 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
-  IsDate,
-  IsNotEmpty,
-  IsNumber,
-  IsOptional,
-  IsString,
+    IsDate,
+    IsNotEmpty,
+    IsNumber,
+    IsOptional,
+    IsString,
 } from 'class-validator';
 
 export class CreateBoardDirectorDto {
@@ -49,7 +49,7 @@ export class CreateBoardDirectorDto {
   })
   @IsNumber()
   @IsNotEmpty()
-  orden: number;
+  order: number;
 
   @ApiProperty({
     description: 'Descripción adicional o notas sobre el cargo',

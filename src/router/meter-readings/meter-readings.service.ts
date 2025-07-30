@@ -98,6 +98,14 @@ export class MeterReadingsService {
   async findAllMeterReadings(pagination: PaginationDto, date: FilterDateDto) {
     const { limit, offset } = pagination;
     const { startDate, endDate } = date;
+
+    const baseQuery = this.meterReadingRepository
+      .createQueryBuilder('meter_reading')
+      .leftJoinAndSelect('meter_reading.waterMeter', 'waterMeter')
+      .leftJoinAndSelect('meter_reading.invoice', 'invoice')
+      .where('meter_reading.date >= :startDate', { startDate })
+      .andWhere('meter_reading.date <= :endDate', { endDate });
+
     if (!startDate || !endDate) {
       const [readings, total] = await this.meterReadingRepository.findAndCount({
         relations: { waterMeter: true, invoice: true },
@@ -111,22 +119,42 @@ export class MeterReadingsService {
         readings,
       };
     }
-    // const { startDate, endDate } = getFirstLastDayMonth(dateParam);
-    // console.log({ startDate, endDate });
-    const data = await this.meterReadingRepository
+    // Count readings realizadas (con datos de lectura válidos)
+    const readCount = await this.meterReadingRepository
       .createQueryBuilder('meter_reading')
-      .leftJoinAndSelect('meter_reading.waterMeter', 'waterMeter')
-      .leftJoinAndSelect('meter_reading.invoice', 'invoice')
-      .andWhere('meter_reading.date >= :startDate', {
-        startDate: startDate,
-      })
-      .andWhere('meter_reading.date <= :endDate', {
-        endDate: endDate,
-      })
+      .where('meter_reading.date >= :startDate', { startDate })
+      .andWhere('meter_reading.date <= :endDate', { endDate })
+      .andWhere('meter_reading.lastMonth IS NOT NULL')
+      .andWhere('meter_reading.lastMonth != :emptyJson', { emptyJson: '{}' })
+      .getCount();
+
+    // Count readings no realizadas (sin datos de lectura o con datos vacíos)
+    const unreadCount = await this.meterReadingRepository
+      .createQueryBuilder('meter_reading')
+      .where('meter_reading.date >= :startDate', { startDate })
+      .andWhere('meter_reading.date <= :endDate', { endDate })
+      .andWhere(
+        '(meter_reading.lastMonth IS NULL OR meter_reading.lastMonth = :emptyJson)',
+        { emptyJson: '{}' },
+      )
+      .getCount();
+
+    const data = await baseQuery
+      .clone()
       .limit(limit)
       .offset(offset)
       .getManyAndCount();
-    return { limit, offset, total: data[1], readings: data[0] };
+    return {
+      limit,
+      offset,
+      total: data[1],
+      summary: {
+        read: readCount,
+        unread: unreadCount,
+        total: readCount + unreadCount,
+      },
+      readings: data[0],
+    };
   }
 
   // ========== ENCUENTRA EL ULTIMO MES LECTURADO DE UN USUARIO ==========
@@ -161,7 +189,7 @@ export class MeterReadingsService {
     // return `This action returns a #${_idid} meterReading que`;
   }
 
-  // ========== ENCUENTRA UNA LECTURA DE MEDIDOR POR SU ID  ==========
+  // ========== ENCUENTRA UNA LECTURA DE MEDIDOR POR SU CI  ==========
   async findReadingsByCI(ci: number) {
     // const meterReading = await this.meterReadingRepository.findOneBy({ _id });
     const meterReading = await this.meterReadingRepository
@@ -422,11 +450,11 @@ export class MeterReadingsService {
       .select('SUM(meter_reading.cubicMeters)', 'totalCubicMeters')
       .addSelect('SUM(meter_reading.balance)', 'totalBalance')
       .addSelect(
-        'SUM(CASE WHEN invoice.status = true THEN meter_reading.balance ELSE 0 END)',
+        'SUM(CASE WHEN invoice.isPaid = true THEN meter_reading.balance ELSE 0 END)',
         'totalPaid',
       )
       .addSelect(
-        'SUM(CASE WHEN invoice.status = false THEN meter_reading.balance ELSE 0 END)',
+        'SUM(CASE WHEN invoice.isPaid = false THEN meter_reading.balance ELSE 0 END)',
         'totalPending',
       )
       .getRawOne<{
@@ -463,7 +491,7 @@ export class MeterReadingsService {
         totalBilled: Number(summaryTotals?.totalBalance) || 0,
         totalPaid: Number(summaryTotals?.totalPaid) || 0,
         pendingAmount: Number(summaryTotals?.totalPending) || 0,
-        paidAmount: 0,
+        // paidAmount: 0,
       },
       reports,
     };

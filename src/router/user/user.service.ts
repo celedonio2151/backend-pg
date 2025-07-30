@@ -12,14 +12,14 @@ import { deleteFile } from 'src/helpers/delete.file';
 import { profileImgFilePath } from 'src/helpers/file.filter';
 import { CreateGoogleUserDto } from 'src/router/auth/dto/create-auth.dto';
 import { HashService } from 'src/router/auth/hashing/password.hash';
+import { Role } from 'src/router/roles/entities/role.entity';
 import { CreateUserDto } from 'src/router/user/dto/create-user.dto';
 import { Providers, User } from 'src/router/user/entities/user.entity';
+import { CreateWaterMeterDto } from 'src/router/water-meters/dto/create-water-meter.dto';
+import { WaterMetersService } from 'src/router/water-meters/water-meters.service';
 import { PaginationDto } from 'src/shared/dto/pagination-query.dto';
 import { StatusQueryDto } from 'src/shared/dto/queries.dto';
 import { RolesService } from '../roles/roles.service';
-import { WaterMetersService } from 'src/router/water-meters/water-meters.service';
-import { CreateWaterMeterDto } from 'src/router/water-meters/dto/create-water-meter.dto';
-import { Role } from 'src/router/roles/entities/role.entity';
 
 @Injectable()
 export class UserService {
@@ -267,7 +267,8 @@ export class UserService {
       for (const roleId of body.role_id) {
         const role = await this.roleService.findOneById(roleId);
         roles.push(role);
-        if (role.name === this.configService.get('ADMIN_ROLE_NAME')) isAdmin = true;
+        if (role.name === this.configService.get('ADMIN_ROLE_NAME'))
+          isAdmin = true;
       }
       user.roles = roles;
       if (isAdmin && !(body.email || user.email)) {
