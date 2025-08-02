@@ -4,6 +4,7 @@ import {
   Controller,
   Get,
   Post,
+  Req,
   Request,
   Res,
   UploadedFile,
@@ -22,7 +23,7 @@ import { diskStorage } from 'multer';
 
 import { IsPublic } from 'src/decorators/public.decorator';
 import { GoogleAuthGuard } from 'src/guards/google-auth.guard';
-import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';
+import { LocalAuthGuard } from 'src/guards/local-auth.guard';
 import { deleteFile } from 'src/helpers/delete.file';
 import {
   fileFilter,
@@ -38,6 +39,7 @@ import {
   LogoutUserDto,
   RefreshTokenDto,
 } from './dto/create-auth.dto';
+import { RequestWithUser } from './interface/payload.interface';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -118,15 +120,14 @@ export class AuthController {
 
   // ====================  LOGIN ADMIM LOCAL  =========================
   @IsPublic()
+  @UseGuards(LocalAuthGuard)
   @Post('/admin/signin')
-  // @UseGuards(LocalAuthGuard)
   @ApiOperation({ summary: 'Iniciar sesión (usuario o administrador)' })
   @ApiResponse({ status: 200, description: 'Inicio de sesión exitoso' })
   @ApiBody({ type: LoginAdminDto })
-  async loginAdminLocal(@Body() body: LoginAdminDto) {
-    // console.log('Leegando el usuario local', req.user);
-    // return req.user;
-    return this.authService.loginAdmin(body);
+  async loginAdminLocal(@Req() req: RequestWithUser) {
+    // Aquí req.user ya está autenticado
+    return req.user;
   }
 
   // ====================  LOGIN USER  =========================
@@ -142,14 +143,13 @@ export class AuthController {
   // ====================  LOGOUT USER  =========================
   // @IsPublic()
   @Post('/logout')
-  @UseGuards(JwtAuthGuard)
+  // @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Cerrar sesión actual (usuario autenticado)' })
   @ApiResponse({ status: 200, description: 'Sesión cerrada correctamente' })
-  logoutUser(@Request() req, @Body() body: LogoutUserDto) {
-    const accessToken = req.headers.authorization?.replace('Bearer ', '');
+  logoutUser(@Req() req: RequestWithUser, @Body() body: LogoutUserDto) {
     return this.authService.logoutUser(
       req['user'],
-      accessToken,
+      req['accessToken'],
       body.refreshToken,
     );
   }

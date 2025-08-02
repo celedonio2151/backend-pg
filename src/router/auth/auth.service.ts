@@ -101,7 +101,6 @@ export class AuthService {
 
   // ===============  LOGIN ADMIN  =============================
   async loginAdmin(loginUser: LoginAdminDto) {
-    console.log('🚀 ~ AuthService ~ loginAdmin ~ loginUser:', loginUser);
     const user = await this.userService.findByEmailRaw(loginUser.email);
     if (!user) throw new UnauthorizedException(`Credenciales inválidos`);
     const passwordTrue = await this.hashService.compare(
@@ -159,7 +158,12 @@ export class AuthService {
     accessToken: string,
     refreshToken: string,
   ) {
-    // console.log('🚀 ~ AuthService ~ logoutUser ~ user:', user);
+    console.log(
+      '🚀 ~ AuthService ~ logoutUser ~ user:',
+      user,
+      accessToken,
+      refreshToken,
+    );
     const findUser = await this.userService.findOneByIdAndTokens(user._id, [
       accessToken,
       refreshToken,

@@ -1,7 +1,7 @@
 import {
-  ExecutionContext,
-  Injectable,
-  UnauthorizedException,
+    ExecutionContext,
+    Injectable,
+    UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { AuthGuard } from '@nestjs/passport';
@@ -18,8 +18,15 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       context.getHandler(),
       context.getClass(),
     ]);
-    if (isPublic) {
-      return true;
+    if (isPublic) return true;
+
+    // Capturar token del header Authorization
+    const request = context.switchToHttp().getRequest();
+    const authHeader = request.headers['authorization'];
+
+    if (authHeader?.startsWith('Bearer ')) {
+      const token = authHeader.replace('Bearer ', '');
+      request.token = token; // <-- Guardamos el token en `req.token`
     }
     return super.canActivate(context);
   }
