@@ -12,7 +12,6 @@ export class LocalAuthGuard extends AuthGuard('local') {
     if (err || !user) {
       throw err || new UnauthorizedException('Invalid credentials');
     }
-    console.log('Que usuario es esto ', user);
     return user;
   }
 }

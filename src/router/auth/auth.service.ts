@@ -161,8 +161,8 @@ export class AuthService {
     console.log(
       '🚀 ~ AuthService ~ logoutUser ~ user:',
       user,
-      accessToken,
-      refreshToken,
+      { accessToken },
+      { refreshToken },
     );
     const findUser = await this.userService.findOneByIdAndTokens(user._id, [
       accessToken,
@@ -181,13 +181,15 @@ export class AuthService {
   }
 
   // ===============  LOGOUT USER ALL DEVICES  =============================
-  async logoutUserAllDevices(user: AuthPayload, token: string) {
-    // console.log('🚀 ~ AuthService ~ logoutUser ~ user:', user);
+  async logoutUserAllDevices(
+    user: AuthPayload,
+    accessToken: string,
+    refreshToken: string,
+  ) {
     const findUser = await this.userService.findOneByIdAndTokens(user._id, [
-      token,
-      token,
+      accessToken,
+      refreshToken,
     ]);
-    // console.log('🚀 ~ AuthService ~ logoutUser ~ user:', findUser);
     findUser.accessToken = [];
     findUser.refreshToken = [];
     await this.userService.saveUser(findUser);

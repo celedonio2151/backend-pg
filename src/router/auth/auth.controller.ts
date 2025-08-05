@@ -164,8 +164,12 @@ export class AuthController {
     description: 'Sesiones cerradas correctamente en todos los dispositivos',
   })
   @ApiBody({ type: LoginUserDto })
-  logoutAllDevices(@Body() loginUser: LoginUserDto) {
-    return this.authService.loginUser(loginUser);
+  logoutAllDevices(@Req() req: RequestWithUser, @Body() body: LogoutUserDto) {
+    return this.authService.logoutUserAllDevices(
+      req['user'],
+      req['accessToken'],
+      body.refreshToken,
+    );
   }
 
   // ====================  REFRESH TOKENS  =====================

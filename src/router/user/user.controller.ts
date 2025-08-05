@@ -32,6 +32,7 @@ import {
 } from 'src/helpers/file.filter';
 import { PaginationDto } from 'src/shared/dto/pagination-query.dto';
 import { NameQueryDTO, StatusQueryDto } from 'src/shared/dto/queries.dto';
+import { RequestWithUser } from '../auth/interface/payload.interface';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserService } from './user.service';
@@ -83,8 +84,8 @@ export class UserController {
   @Get('/me')
   @ApiOperation({ summary: 'Obtener el perfil del usuario autenticado' })
   @ApiResponse({ status: 200, description: 'Datos del usuario autenticado' })
-  findMe(@Request() req: any) {
-    return { message: 'Encontrarme' };
+  findMe(@Request() req: RequestWithUser) {
+    return this.userService.getMeById(req.user._id);
   }
 
   // ===========================================================

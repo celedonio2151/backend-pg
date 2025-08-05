@@ -134,6 +134,17 @@ export class UserService {
     return user;
   }
 
+  async findOneByIdAndAccessToken(id: string, accessToken: string) {
+    const user = await this.userRepository.findOne({
+      where: {
+        _id: id,
+        accessToken: Like(`%${accessToken}%`),
+      },
+      // select: userColumns,
+    });
+    return user;
+  }
+
   async findOneByIdRaw(id: string) {
     return await this.userRepository.findOne({
       where: { _id: id },
@@ -200,6 +211,13 @@ export class UserService {
   async getMeById(_id: string) {
     const user = await this.userRepository.findOne({
       where: { _id },
+      select: {
+        ...userColumns,
+        accessToken: true,
+        refreshToken: true,
+        authProvider: true,
+        boardDirector: true,
+      },
     });
     return user;
   }
