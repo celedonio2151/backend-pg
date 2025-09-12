@@ -1,23 +1,23 @@
 import {
-  BadRequestException,
-  Body,
-  Controller,
-  Get,
-  Post,
-  Req,
-  Request,
-  Res,
-  UploadedFile,
-  UseGuards,
-  UseInterceptors,
+    BadRequestException,
+    Body,
+    Controller,
+    Get,
+    Post,
+    Req,
+    Request,
+    Res,
+    UploadedFile,
+    UseGuards,
+    UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
-  ApiBody,
-  ApiConsumes,
-  ApiOperation,
-  ApiResponse,
-  ApiTags,
+    ApiBody,
+    ApiConsumes,
+    ApiOperation,
+    ApiResponse,
+    ApiTags,
 } from '@nestjs/swagger';
 import { diskStorage } from 'multer';
 
@@ -26,18 +26,18 @@ import { GoogleAuthGuard } from 'src/guards/google-auth.guard';
 import { LocalAuthGuard } from 'src/guards/local-auth.guard';
 import { deleteFile } from 'src/helpers/delete.file';
 import {
-  fileFilter,
-  fileRename,
-  profileImgFilePath,
+    fileFilter,
+    fileRename,
+    profileImgFilePath,
 } from 'src/helpers/file.filter';
 import { UserService } from 'src/router/user/user.service';
 import { AuthService } from './auth.service';
 import {
-  CreateAuthAdminDto,
-  LoginAdminDto,
-  LoginUserDto,
-  LogoutUserDto,
-  RefreshTokenDto,
+    CreateAuthAdminDto,
+    LoginAdminDto,
+    LoginUserDto,
+    LogoutUserDto,
+    RefreshTokenDto,
 } from './dto/create-auth.dto';
 import { RequestWithUser } from './interface/payload.interface';
 
@@ -178,8 +178,8 @@ export class AuthController {
   @ApiOperation({ summary: 'Refrescar tokens de acceso y actualización' })
   @ApiResponse({ status: 200, description: 'Tokens renovados correctamente' })
   @ApiBody({ type: RefreshTokenDto })
-  refreshTokens(@Body() refreshToken: RefreshTokenDto) {
-    return this.authService.refreshTokens(refreshToken);
+  refreshTokens(@Body() body: RefreshTokenDto) {
+    return this.authService.refreshTokens(body);
   }
 
   // ===========================================================

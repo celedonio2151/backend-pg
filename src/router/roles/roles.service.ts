@@ -1,14 +1,15 @@
 import {
-  ConflictException,
-  Injectable,
-  NotFoundException,
+    BadRequestException,
+    ConflictException,
+    Injectable,
+    NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { PaginationDto } from 'src/shared/dto/pagination-query.dto';
 import { Repository } from 'typeorm';
-import { Role } from './entities/role.entity';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
-import { PaginationDto } from 'src/shared/dto/pagination-query.dto';
+import { Role } from './entities/role.entity';
 
 @Injectable()
 export class RolesService {
@@ -16,6 +17,21 @@ export class RolesService {
     @InjectRepository(Role)
     private readonly roleRepository: Repository<Role>,
   ) {}
+
+  // ========== CREA ROLES POR DEFECTO ==========
+  async onApplicationBootstrap() {
+    const defaultRoles: CreateRoleDto[] = [
+      { name: 'ADMIN', description: 'Administrador del sistema' },
+      { name: 'USER', description: 'Usuario registrado por defecto' },
+    ];
+    for (const roleData of defaultRoles) {
+      const exists = await this.roleRepository.findOne({
+        where: { name: roleData.name },
+      });
+      if (!exists)
+        await this.roleRepository.save(this.roleRepository.create(roleData));
+    }
+  }
 
   async create(createRoleDto: CreateRoleDto): Promise<Role> {
     const role = await this.roleRepository.findOne({
@@ -70,6 +86,10 @@ export class RolesService {
   }
 
   async remove(id: string): Promise<void> {
+    const role = await this.findOneById(id);
+    if (role.name === 'USER' || role.name === 'ADMIN') {
+      throw new BadRequestException(`No se puede borrar el rol ${role.name}`);
+    }
     const result = await this.roleRepository.delete(id);
     if (result.affected === 0) {
       throw new NotFoundException(`Role with id ${id} not found`);

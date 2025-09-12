@@ -124,6 +124,7 @@ export class CreateUserDto {
   status?: boolean;
 
   @Type(() => Array)
+  @IsOptional()
   @IsArray()
   @IsNotEmpty({ each: true })
   @IsString({ each: true })
@@ -132,6 +133,7 @@ export class CreateUserDto {
   @ApiProperty({
     description: 'Lista de IDs de roles asignados al usuario',
     example: ['f7e947e1-9c41-4f3b-9a11-1ddc45e5c1a1'],
+    default: ['USER'],
     type: [String],
   })
   @Transform(({ value }): string[] => {
@@ -145,5 +147,5 @@ export class CreateUserDto {
       return [];
     }
   })
-  role_id: string[];
+  role_id?: string[];
 }

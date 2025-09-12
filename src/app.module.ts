@@ -19,6 +19,7 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { BankModule } from './router/bank/bank.module';
 import { PrinterModule } from './router/printer/printer.module';
 import { ReportModule } from './router/report/report.module';
+import { InvoiceTableModule } from './router/invoice-table/invoice-table.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { ReportModule } from './router/report/report.module';
     PrinterModule,
     ReportModule,
     BankModule,
+    InvoiceTableModule,
     // SeedersModule,
   ],
   controllers: [],

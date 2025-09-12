@@ -101,11 +101,13 @@ export class LogoutUserDto {
 // REFRESH TOKEN DTO
 export class RefreshTokenDto {
   @ApiProperty({
-    example: '518d2115-bf4d-4538-a4ca-7c03f074b5e3',
+    example:
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI4ZTUyOGNkMy02OGY5LTQ2OTAtOGNjMC03ZTQ3ZGVkZjFhZDIiLCJuYW1lIjoiUnVieSIsImVtYWlsIjoicnVieUBnbWFpbC5jb20iLCJyb2xlcyI6WyJBRE1JTiIsIlVTRVIiXSwiaWF0IjoxNzQ0ODQ3ODY0LCJleHAiOjE3NDQ4NDg0NjR9.6GGY4zcf1giz_hg3Z1BCvdIn9g6DONXWmbafaVWF0uo',
+    description: 'El accessToken expirado es requerido',
   })
   @IsString()
   @IsNotEmpty()
-  userId: string;
+  accessToken: string;
 
   @ApiProperty({
     example:

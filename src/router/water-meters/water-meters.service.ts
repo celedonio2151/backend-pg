@@ -1,7 +1,7 @@
 import {
-    BadRequestException,
-    Injectable,
-    NotFoundException,
+  BadRequestException,
+  Injectable,
+  NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { getFirstLastDayYear } from 'src/helpers/calculateEveryone';
@@ -136,7 +136,6 @@ export class WaterMetersService {
   }
 
   async findOneById(id: string) {
-    console.log(id);
     const meter = await this.waterMeterRepository.findOneBy({ _id: id });
     if (!meter)
       throw new NotFoundException(`Medidor de agua ${id} no registrado`);

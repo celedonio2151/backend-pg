@@ -5,6 +5,7 @@ import {
     Param,
     Patch,
     Post,
+    Put,
     Query,
     Res,
 } from '@nestjs/common';
@@ -12,8 +13,12 @@ import { ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { generateNamePDF } from 'src/helpers/generateNamePDF';
 import { ReceiveNotificationDTO } from 'src/router/invoices/dto/recieve-notification.dto';
-import { FilterDateDto, ModePDFQueryDto } from 'src/shared/dto/queries.dto';
-import { UpdateInvoiceDto } from './dto/update-invoice.dto';
+import {
+    FilterDateDto,
+    ModePDFQueryDto,
+    OrderQueryDTO,
+} from 'src/shared/dto/queries.dto';
+import { PayManyMonthsDto, UpdateInvoiceDto } from './dto/update-invoice.dto';
 import { InvoicesService } from './invoices.service';
 
 @ApiTags('Facturas (Recibos de agua)')
@@ -29,7 +34,6 @@ export class InvoicesController {
 
   // ========== FIND BY ID AND GENERATE A INVOICE  ==========
   @Get('/pdf/:readingId')
-  // @IsPublic() // No deberia ggg
   async createPDF(
     @Param('readingId') readingId: string,
     @Query('mode') mode: ModePDFQueryDto,
@@ -68,21 +72,19 @@ export class InvoicesController {
     pdfDoc.end();
   }
 
-  // ========== CREATE A INVOICE TEST ==========
-  // @Get('/pdf')
-  // async getPDF(
-  //   @Body() body: any,
-  //   @Query('mode') mode: ModePDFQueryDto,
-  //   @Res() res: Response,
-  // ): Promise<void> {
-  //   const modePDF = mode || 'inline';
-  //   const pdfDoc = await this.invoicesService.generatePDF({});
-
-  //   res.setHeader('Content-Type', 'application/pdf');
-  //   pdfDoc.info.Title = 'Recibo de Agua potable 2025';
-  //   pdfDoc.pipe(res);
-  //   pdfDoc.end();
-  // }
+  // ========== LIST USERS NO PAID THEIR INVOICES ==========
+  @Get('/no-paid')
+  async getUsersWithUnpaidInvoices(
+    @Query() order: OrderQueryDTO,
+    @Query() dates: FilterDateDto,
+    @Query('ci') ci: number,
+  ) {
+    return await this.invoicesService.findUsersWithUnpaidInvoices(
+      dates,
+      ci,
+      order,
+    );
+  }
 
   // ========== LISTA ALL INVOICES RELATIONS WITH METER READING ==========
   @Get()
@@ -94,6 +96,12 @@ export class InvoicesController {
   @Get('/reading-id/:readingId')
   findOne(@Param('readingId') readingId: string) {
     return this.invoicesService.findOneByReadingId(readingId);
+  }
+
+  // ========== PAID MANY MONTHS ==========
+  @Put('pay-many-months')
+  payManyMonths(@Body() body: PayManyMonthsDto) {
+    return this.invoicesService.payManyMonths(body);
   }
 
   // ========== PAID LOCAL MY INVOICE ==========

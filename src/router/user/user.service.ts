@@ -1,7 +1,8 @@
 import {
-  ConflictException,
-  Injectable,
-  NotFoundException,
+    ConflictException,
+    Injectable,
+    InternalServerErrorException,
+    NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Like, Repository } from 'typeorm';
@@ -31,6 +32,7 @@ export class UserService {
     private readonly hashService: HashService,
   ) {}
 
+  // ========== CREA UN NUEVO USUARIO ===========
   async create(body: CreateUserDto, filename?: string) {
     if (body.email) {
       const user = await this.findByEmailRaw(body.email);
@@ -43,10 +45,18 @@ export class UserService {
     const ci = await this.findOneUserByCIRaw(body.ci);
     if (ci) throw new ConflictException(`El ci ${body.ci} ya esta registrado`);
     const newUser = this.userRepository.create(body);
-    const roles = await Promise.all(
-      body.role_id.map((roleId) => this.roleService.findOneById(roleId)),
-    );
-    newUser.roles = roles;
+    if (body.role_id?.length) {
+      const roles = await Promise.all(
+        body.role_id.map((roleId) => this.roleService.findOneById(roleId)),
+      );
+      newUser.roles = roles;
+    } else {
+      const findRoles = await this.roleService.findOneByNameRaw('USER');
+      if (!findRoles)
+        throw new InternalServerErrorException('Rol USER no encontrado');
+      newUser.roles = [findRoles]; // Guarda con el rol USER
+    }
+
     if (filename) newUser.profileImg = filename;
     await this.userRepository.save(newUser);
     // Si hay numero de medidor registrar
@@ -65,14 +75,17 @@ export class UserService {
       newUser.profileImg;
     return newUser;
   }
+
   async createWithGoogle(body: CreateGoogleUserDto) {
     const user = await this.findByEmailRaw(body.email);
     if (user) throw new ConflictException(`Email ${body.email} ya existe`);
     const newUser = this.userRepository.create(body);
-    const roles = await Promise.all(
-      body.role_id.map((roleId) => this.roleService.findOneById(roleId)),
-    );
-    newUser.roles = roles;
+    if (body.role_id?.length) {
+      const roles = await Promise.all(
+        body.role_id.map((roleId) => this.roleService.findOneById(roleId)),
+      );
+      newUser.roles = roles;
+    }
     await this.userRepository.save(newUser);
     newUser.profileImg =
       this.configService.get('HOST_ADMIN') +

@@ -1,14 +1,15 @@
-import { TypeOrmModuleOptions, TypeOrmOptionsFactory } from '@nestjs/typeorm';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { TypeOrmModuleOptions, TypeOrmOptionsFactory } from '@nestjs/typeorm';
 
-import { User } from 'src/router/user/entities/user.entity';
-import { Role } from 'src/router/roles/entities/role.entity';
-import { WaterMeter } from 'src/router/water-meters/entities/water-meter.entity';
-import { BoardDirector } from 'src/router/board-directors/entities/board-director.entity';
-import { MeterReading } from 'src/router/meter-readings/entities/meter-reading.entity';
-import { Invoice } from 'src/router/invoices/entities/invoice.entity';
 import { Billing } from 'src/router/billing/entities/billing.entity';
+import { BoardDirector } from 'src/router/board-directors/entities/board-director.entity';
+import { InvoiceTable } from 'src/router/invoice-table/entities/invoice-table.entity';
+import { Invoice } from 'src/router/invoices/entities/invoice.entity';
+import { MeterReading } from 'src/router/meter-readings/entities/meter-reading.entity';
+import { Role } from 'src/router/roles/entities/role.entity';
+import { User } from 'src/router/user/entities/user.entity';
+import { WaterMeter } from 'src/router/water-meters/entities/water-meter.entity';
 
 @Injectable()
 export class TypeOrmConfigService implements TypeOrmOptionsFactory {
@@ -35,6 +36,7 @@ export class TypeOrmConfigService implements TypeOrmOptionsFactory {
         MeterReading,
         BoardDirector,
         Invoice,
+        InvoiceTable,
         Billing,
       ],
       // migrations: [AdminCreateDefault1631646226711],

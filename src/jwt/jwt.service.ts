@@ -34,9 +34,7 @@ export class JWTService {
   async verifyRefreshToken(token: string): Promise<AuthPayload> {
     try {
       return await this.jwtService.verifyAsync(token, {
-        secret:
-          this.configService.get('JWT_REFRESH_SECRET') ||
-          this.configService.get('JWT_KEY'),
+        secret: this.configService.get('JWT_KEY_REFRESH'),
       });
     } catch (error) {
       this.logger.error('Error verifying refresh token', error.message);

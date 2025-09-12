@@ -1,9 +1,11 @@
 import { AuditableEntity } from 'src/configs/auditable-entity.config';
+import { InvoiceTable } from 'src/router/invoice-table/entities/invoice-table.entity';
 import { MeterReading } from 'src/router/meter-readings/entities/meter-reading.entity';
 import {
   Column,
   Entity,
   JoinColumn,
+  ManyToOne,
   OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
@@ -27,4 +29,11 @@ export class Invoice extends AuditableEntity {
   })
   @JoinColumn({ name: 'meter_reading_id' })
   meterReading: MeterReading;
+
+  @ManyToOne(() => InvoiceTable, (invoiceTable) => invoiceTable.invoices, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn({ name: 'invoice_table_id' })
+  invoiceTable: InvoiceTable;
 }

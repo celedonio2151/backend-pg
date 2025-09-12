@@ -1,8 +1,4 @@
-import {
-  ForbiddenException,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 import { JWTService } from 'src/jwt/jwt.service';
@@ -72,8 +68,7 @@ export class AuthService {
     if (existingUser) {
       user = existingUser;
     } else {
-      const roleName = this.configService.get('DEFAULT_GOOGLE_ROLE');
-      const role = await this.roleService.findOneByName(roleName);
+      const role = await this.roleService.findOneByName('USER'); // Buscar el rol por nombre
       const body2: CreateGoogleUserDto = {
         ...body,
         password: '',
@@ -198,17 +193,17 @@ export class AuthService {
     };
   }
 
-  // new access token and refresh token
-  async refreshTokens(refreshToken: RefreshTokenDto): Promise<Tokens> {
-    const user = await this.userService.findOneById(refreshToken.userId);
+  // ============== new access token and refresh token  ====================
+  async refreshTokens(body: RefreshTokenDto): Promise<Tokens> {
+    const decodePayload = await this.jwtService.verifyRefreshToken(
+      body.refreshToken,
+    );
+    const user = await this.userService.findOneById(decodePayload._id);
     console.log('🚀 ~ AuthService ~ refreshTokens ~ user:', user);
-
-    if (!user || !user.refreshToken)
-      throw new ForbiddenException('Access Denied');
-
-    // const rtMatches = await this.hashService.compare(rt, user.refreshToken);
-    // if (!rtMatches) throw new ForbiddenException('Access Denied');
-
+    const findUser = await this.userService.findOneByIdAndTokens(
+      decodePayload._id,
+      [body.accessToken, body.refreshToken],
+    );
     const payload: AuthPayload = {
       _id: user._id,
       name: user.name,
@@ -217,9 +212,14 @@ export class AuthService {
     };
     const tokens = await this.getTokens(payload);
     // Save tokens in the database
-    // await this.updateRtHash(user._id.toString(), tokens.refreshToken);
-
-    return tokens;
+    findUser.accessToken = findUser.accessToken.filter(
+      (tk) => tk != body.accessToken,
+    );
+    // await this.userService.saveUser(findUser);
+    return {
+      accessToken: tokens.accessToken,
+      refreshToken: body.refreshToken,
+    };
   }
 
   // generate access and refresh tokens for the user

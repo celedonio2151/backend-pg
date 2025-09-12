@@ -161,8 +161,8 @@ export function invoiceBuilt(data: InvoicePDF): TDocumentDefinitions {
             [
               { text: 'Nro', style: 'tableHeader' },
               { text: 'Fecha', style: 'tableHeader' },
-              { text: 'Antes (m³)', style: 'tableHeader' },
-              { text: 'Después (m³)', style: 'tableHeader' },
+              { text: 'Antes', style: 'tableHeader' },
+              { text: 'Después', style: 'tableHeader' },
               { text: 'Consumo (m³)', style: 'tableHeader' },
               { text: 'Saldo (Bs)', style: 'tableHeader' },
             ],

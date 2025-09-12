@@ -1,8 +1,9 @@
 import { HttpService } from '@nestjs/axios';
 import {
-  Injectable,
-  NotAcceptableException,
-  NotFoundException,
+    BadRequestException,
+    Injectable,
+    NotAcceptableException,
+    NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { AxiosError } from 'axios';
@@ -15,17 +16,18 @@ import { formatDate } from 'src/helpers/formatDate';
 import { invoiceBuilt } from 'src/libs/invoice';
 import { ReceiveNotificationDTO } from 'src/router/invoices/dto/recieve-notification.dto';
 import {
-  BodyGetTokenBNB,
-  InvoicePDF,
-  ReponseGetTokenBNB,
+    BodyGetTokenBNB,
+    InvoicePDF,
+    ReponseGetTokenBNB,
 } from 'src/router/invoices/interfaces/interfacesBNB.ForQR';
 import { MeterReadingsService } from 'src/router/meter-readings/meter-readings.service';
 import { PrinterService } from 'src/router/printer/printer.service';
-import { FilterDateDto } from 'src/shared/dto/queries.dto';
+import { FilterDateDto, OrderQueryDTO } from 'src/shared/dto/queries.dto';
 import { BankService } from '../bank/bank.service';
 import { GenerateQrDto } from '../bank/dto/create-bank.dto';
+import { WaterMetersService } from '../water-meters/water-meters.service';
 import { GenerateQRCodeBNBDTO } from './dto/generate-qr-bnb.dto';
-import { UpdateInvoiceDto } from './dto/update-invoice.dto';
+import { PayManyMonthsDto, UpdateInvoiceDto } from './dto/update-invoice.dto';
 import { Invoice } from './entities/invoice.entity';
 
 @Injectable()
@@ -34,6 +36,7 @@ export class InvoicesService {
     @InjectRepository(Invoice)
     private invoicesRepository: Repository<Invoice>,
     private meterReadingService: MeterReadingsService,
+    private waterMeterService: WaterMetersService,
     private printerService: PrinterService,
     private readonly bankService: BankService,
     private readonly httpService: HttpService,
@@ -178,7 +181,7 @@ export class InvoicesService {
     return invoice;
   }
 
-  // ========== ENCUENTRA UN INVOICE POR SU ID  ==========
+  // ========== ENCUENTRA UN INVOICE POR EL ID DE LECTURA  ==========
   async findOneByReadingId(readingId: string) {
     const invoice = await this.invoicesRepository
       .createQueryBuilder('invoice')
@@ -191,6 +194,93 @@ export class InvoicesService {
       );
     }
     return invoice;
+  }
+
+  // ========== ENCUENTRA LOS USUARIOS QUE NO PAGARON SU DEUDA ==========
+  async findUsersWithUnpaidInvoices(
+    date?: FilterDateDto,
+    ci?: number,
+    order?: OrderQueryDTO,
+  ) {
+    const queryBase = this.invoicesRepository
+      .createQueryBuilder('invoice')
+      .leftJoinAndSelect('invoice.meterReading', 'meter_reading')
+      .leftJoinAndSelect('meter_reading.waterMeter', 'water_meter')
+      .where('invoice.isPaid = :isPaid', { isPaid: false })
+      .andWhere('invoice.deletedAt IS NULL')
+      .andWhere('meter_reading.deletedAt IS NULL')
+      .andWhere('water_meter.deletedAt IS NULL');
+
+    // ✅ Filtro por CI (opcional)
+    if (ci && ci > 0) {
+      queryBase.andWhere('water_meter.ci = :ci', { ci });
+    }
+
+    // ✅ Filtros por fecha (opcionales)
+    if (date?.startDate) {
+      queryBase.andWhere('meter_reading.date >= :startDate', {
+        startDate: date.startDate,
+      });
+    }
+
+    if (date?.endDate) {
+      queryBase.andWhere('meter_reading.date <= :endDate', {
+        endDate: date.endDate,
+      });
+    }
+
+    // ✅ Ordenar por fecha más reciente primero
+    queryBase.orderBy('meter_reading.date', 'DESC');
+
+    try {
+      const [invoices, total] = await queryBase.getManyAndCount();
+
+      // ✅ Información adicional útil
+      const uniqueUsers = new Set(
+        invoices.map((inv) => inv.meterReading?.waterMeter?.ci),
+      );
+      const dateRange =
+        invoices.length > 0
+          ? {
+              earliest: invoices[invoices.length - 1]?.meterReading?.date,
+              latest: invoices[0]?.meterReading?.date,
+            }
+          : null;
+
+      return {
+        total,
+        uniqueUsersCount: uniqueUsers.size,
+        filters: {
+          ci: ci || null,
+          startDate: date?.startDate || null,
+          endDate: date?.endDate || null,
+        },
+        dateRange,
+        invoices,
+      };
+    } catch (error) {
+      console.error('Error finding unpaid invoices:', error);
+      throw new Error('Error al buscar facturas no pagadas');
+    }
+  }
+
+  // ========== ACTUALIZA EL ESTADO DE PAGO DE MUCHAS FACTURAS | RECIBOS DE UN MEDIDOR ==========
+  async payManyMonths(body: PayManyMonthsDto) {
+    const invoices: Invoice[] = [];
+    const waterMeter = await this.waterMeterService.findOneById(body.meterId);
+    for (const invoiceId of body.invoiceIds) {
+      const invoice = await this.findOne(invoiceId);
+      if (!invoice)
+        throw new NotFoundException(
+          `El recibo ${invoiceId} no existe o aun no fue generado`,
+        );
+      if (waterMeter._id !== invoice.meterReading.waterMeter._id)
+        throw new BadRequestException('El medidor no coincide con el recibo');
+      Object.assign(invoice, { isPaid: true });
+      // await this.invoicesRepository.save(invoice);
+      invoices.push(invoice);
+    }
+    return { total: invoices.length, invoices };
   }
 
   // ========== ACTUALIZA EL ESTADO DE PAGO DEL FACTURA | RECIBO  ==========
