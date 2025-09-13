@@ -1,8 +1,8 @@
 import {
-    ConflictException,
-    Injectable,
-    InternalServerErrorException,
-    NotFoundException,
+  ConflictException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Like, Repository } from 'typeorm';
@@ -273,7 +273,6 @@ export class UserService {
       const userEmail = await this.userRepository.findOne({
         where: { email: body.email },
       });
-      console.log('🚀 ~ UserService ~ update ~ userEmail:', userEmail);
       if (userEmail && userEmail._id !== _id)
         throw new ConflictException(
           `El email ${body.email} ya esta registrado`,
@@ -328,7 +327,7 @@ export class UserService {
 
   // =========  UPDATE REFRESH TOKEN USER | ADMIN ========
   async updateRefreshToken(_id: string, token: string) {
-    const newUser = await this.userRepository.findOne({ where: { _id } });
+    const newUser = await this.findOneById(_id);
     if (!newUser) throw new NotFoundException(`User ${_id} not found`);
     // If refreshToken is null, then save by first time
     newUser.refreshToken?.push(token) || (newUser.refreshToken = [token]);
@@ -336,7 +335,7 @@ export class UserService {
   }
   // =========  UPDATE ACCESS TOKEN USER | ADMIN ========
   async updateAccessToken(_id: string, token: string) {
-    const newUser = await this.userRepository.findOne({ where: { _id } });
+    const newUser = await this.findOneById(_id);
     if (!newUser) throw new NotFoundException(`User ${_id} not found`);
     // If refreshToken is null, then save by first time
     newUser.accessToken?.push(token) || (newUser.accessToken = [token]);
