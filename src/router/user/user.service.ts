@@ -327,7 +327,7 @@ export class UserService {
 
   // =========  UPDATE REFRESH TOKEN USER | ADMIN ========
   async updateRefreshToken(_id: string, token: string) {
-    const newUser = await this.findOneById(_id);
+    const newUser = await this.findOneByIdRaw(_id);
     if (!newUser) throw new NotFoundException(`User ${_id} not found`);
     // If refreshToken is null, then save by first time
     newUser.refreshToken?.push(token) || (newUser.refreshToken = [token]);
@@ -335,7 +335,7 @@ export class UserService {
   }
   // =========  UPDATE ACCESS TOKEN USER | ADMIN ========
   async updateAccessToken(_id: string, token: string) {
-    const newUser = await this.findOneById(_id);
+    const newUser = await this.findOneByIdRaw(_id);
     if (!newUser) throw new NotFoundException(`User ${_id} not found`);
     // If refreshToken is null, then save by first time
     newUser.accessToken?.push(token) || (newUser.accessToken = [token]);
