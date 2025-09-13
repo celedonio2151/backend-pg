@@ -153,12 +153,6 @@ export class AuthService {
     accessToken: string,
     refreshToken: string,
   ) {
-    console.log(
-      '🚀 ~ AuthService ~ logoutUser ~ user:',
-      user,
-      { accessToken },
-      { refreshToken },
-    );
     const findUser = await this.userService.findOneByIdAndTokens(user._id, [
       accessToken,
       refreshToken,
