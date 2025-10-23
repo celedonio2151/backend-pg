@@ -8,6 +8,7 @@ import { getFirstLastDayYear } from 'src/helpers/calculateEveryone';
 import { PaginationDto } from 'src/shared/dto/pagination-query.dto';
 import { FilterDateDto } from 'src/shared/dto/queries.dto';
 import { Repository } from 'typeorm';
+import { User } from '../user/entities/user.entity';
 import { CreateWaterMeterDto } from './dto/create-water-meter.dto';
 import { UpdateWaterMeterDto } from './dto/update-water-meter.dto';
 import { WaterMeter } from './entities/water-meter.entity';
@@ -17,7 +18,8 @@ export class WaterMetersService {
   constructor(
     @InjectRepository(WaterMeter)
     private waterMeterRepository: Repository<WaterMeter>,
-    // private userService: UsersService,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
   ) {}
 
   async create(body: CreateWaterMeterDto) {
@@ -30,11 +32,18 @@ export class WaterMetersService {
     return this.waterMeterRepository.save(waterMeter);
   }
   async createOnlyMeter(body: CreateWaterMeterDto) {
-    // Buscar el usuario antes de insertar
+    // Buscar el medidor antes de insertar
     if (await this.findOneByMeterNumberRaw(body.meter_number))
       throw new NotFoundException(
         `El medidor de agua ${body.meter_number} ya existe`,
       );
+    // Buscar usuario existente y activo
+    const user = await this.userRepository.findOne({
+      where: { ci: body.ci, status: true },
+    });
+    if (!user)
+      throw new NotFoundException(`El usuario con CI ${body.ci} no existe`);
+    // Busca un usuario por CI, si existe reutiliza sus datos
     const waterMeter = await this.findOneByCIRaw(body.ci);
     if (waterMeter) {
       const newWaterMeter = this.waterMeterRepository.create({
