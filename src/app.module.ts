@@ -4,7 +4,7 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { join } from 'path';
 
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { Config } from 'src/configs/config';
 import { TypeOrmConfigService } from 'src/configs/db.config';
 import { envValidationSchema } from 'src/configs/env.validation.joi';
@@ -16,10 +16,12 @@ import { MeterReadingsModule } from 'src/router/meter-readings/meter-readings.mo
 import { UserModule } from 'src/router/user/user.module';
 import { WaterMetersModule } from 'src/router/water-meters/water-meters.module';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { AuditInterceptor } from './interceptors/interceptor.log';
+import { AuditLogModule } from './router/audit-log/audit-log.module';
 import { BankModule } from './router/bank/bank.module';
+import { InvoiceTableModule } from './router/invoice-table/invoice-table.module';
 import { PrinterModule } from './router/printer/printer.module';
 import { ReportModule } from './router/report/report.module';
-import { InvoiceTableModule } from './router/invoice-table/invoice-table.module';
 
 @Module({
   imports: [
@@ -44,6 +46,7 @@ import { InvoiceTableModule } from './router/invoice-table/invoice-table.module'
     ReportModule,
     BankModule,
     InvoiceTableModule,
+    AuditLogModule,
     // SeedersModule,
   ],
   controllers: [],
@@ -51,6 +54,10 @@ import { InvoiceTableModule } from './router/invoice-table/invoice-table.module'
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: AuditInterceptor,
     },
   ],
 })

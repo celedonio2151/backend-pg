@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { TypeOrmModuleOptions, TypeOrmOptionsFactory } from '@nestjs/typeorm';
+import { AuditLog } from 'src/router/audit-log/entities/audit-log.entity';
 
 import { Billing } from 'src/router/billing/entities/billing.entity';
 import { BoardDirector } from 'src/router/board-directors/entities/board-director.entity';
@@ -38,6 +39,7 @@ export class TypeOrmConfigService implements TypeOrmOptionsFactory {
         Invoice,
         InvoiceTable,
         Billing,
+        AuditLog,
       ],
       // migrations: [AdminCreateDefault1631646226711],
       synchronize: process.env.NODE_ENV !== 'production', // false
