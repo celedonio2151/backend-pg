@@ -23,6 +23,7 @@ export class RolesService {
     const defaultRoles: CreateRoleDto[] = [
       { name: 'ADMIN', description: 'Administrador del sistema' },
       { name: 'USER', description: 'Usuario registrado por defecto' },
+      { name: 'TECHNICIAN', description: 'Tecnico del sistema' },
     ];
     for (const roleData of defaultRoles) {
       const exists = await this.roleRepository.findOne({
@@ -93,7 +94,11 @@ export class RolesService {
 
   async remove(id: string): Promise<void> {
     const role = await this.findOneById(id);
-    if (role.name === 'USER' || role.name === 'ADMIN') {
+    if (
+      role.name === 'USER' ||
+      role.name === 'ADMIN' ||
+      role.name === 'TECHNICIAN'
+    ) {
       throw new BadRequestException(`No se puede borrar el rol ${role.name}`);
     }
     const result = await this.roleRepository.delete(id);
