@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   InternalServerErrorException,
@@ -13,7 +14,6 @@ import { deleteFile } from 'src/helpers/delete.file';
 import { profileImgFilePath } from 'src/helpers/file.filter';
 import { CreateGoogleUserDto } from 'src/router/auth/dto/create-auth.dto';
 import { HashService } from 'src/router/auth/hashing/password.hash';
-import { Role } from 'src/router/roles/entities/role.entity';
 import { CreateUserDto } from 'src/router/user/dto/create-user.dto';
 import { Providers, User } from 'src/router/user/entities/user.entity';
 import { CreateWaterMeterDto } from 'src/router/water-meters/dto/create-water-meter.dto';
@@ -278,7 +278,6 @@ export class UserService {
           `El email ${body.email} ya esta registrado`,
         );
     }
-
     // Validar teléfono si se está cambiando
     if (body.phoneNumber && body.phoneNumber !== user.phoneNumber) {
       const userPhone = await this.userRepository.findOne({
@@ -289,18 +288,17 @@ export class UserService {
           `El celular ${body.phoneNumber} ya esta registrado`,
         );
     }
-
     // Validar roles y si es ADMIN debe tener email
+    // En lugar del bucle
     if (body.role_id) {
-      const roles: Role[] = [];
-      let isAdmin = false;
-      for (const roleId of body.role_id) {
-        const role = await this.roleService.findOneById(roleId);
-        roles.push(role);
-        if (role.name === this.configService.get('ADMIN_ROLE_NAME'))
-          isAdmin = true;
+      const roles = await this.roleService.findRolesInRaw(body.role_id);
+      if (roles.length !== body.role_id.length) {
+        throw new BadRequestException('Uno o más roles no son válidos.');
       }
+
+      const isAdmin = roles.some((role) => role.name === 'ADMIN');
       user.roles = roles;
+
       if (isAdmin && !(body.email || user.email)) {
         throw new ConflictException('Un usuario ADMIN debe tener un email.');
       }
@@ -311,8 +309,9 @@ export class UserService {
     if (body.password)
       user.password = await this.hashService.encrypt(body.password);
 
-    const userUpdate = await this.userRepository.save(user);
-    user.profileImg =
+    let userUpdate = await this.userRepository.save(user);
+    userUpdate = await this.findOneById(userUpdate._id);
+    userUpdate.profileImg =
       this.configService.get('HOST_ADMIN') + 'profileImgs/' + user.profileImg;
     return userUpdate;
   }

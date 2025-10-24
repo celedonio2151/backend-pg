@@ -1,12 +1,12 @@
 import {
-    BadRequestException,
-    ConflictException,
-    Injectable,
-    NotFoundException,
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { PaginationDto } from 'src/shared/dto/pagination-query.dto';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 import { Role } from './entities/role.entity';
@@ -69,6 +69,12 @@ export class RolesService {
 
   async findOneByNameRaw(name: string) {
     return await this.roleRepository.findOne({ where: { name } });
+  }
+
+  async findRolesInRaw(_ids: string[]) {
+    return await this.roleRepository.findBy({
+      _id: In(_ids),
+    });
   }
 
   async update(id: string, updateRoleDto: UpdateRoleDto): Promise<Role> {
