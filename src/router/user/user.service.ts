@@ -6,7 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Like, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { UpdateUserDto } from './dto/update-user.dto';
 
 import { ConfigService } from '@nestjs/config';
@@ -135,26 +135,22 @@ export class UserService {
   }
 
   async findOneByIdAndTokens(id: string, tokens: [string, string]) {
-    const user = await this.userRepository.findOne({
-      where: {
-        _id: id,
-        accessToken: Like(`%${tokens[0]}%`),
-        refreshToken: Like(`%${tokens[1]}%`),
-      },
-      // select: userColumns,
-    });
-    if (!user) throw new NotFoundException(`User ${id} not found`);
+    const [accessToken, refreshToken] = tokens;
+    const user = await this.findOneByIdRaw(id);
+    if (!user) throw new NotFoundException(`Usuario no encontrado`);
+    const hasAccess = user.accessToken?.includes(accessToken);
+    const hasRefresh = user.refreshToken?.includes(refreshToken);
+
+    if (!hasAccess || !hasRefresh)
+      throw new NotFoundException(`Tokens inválidos`);
     return user;
   }
 
   async findOneByIdAndAccessToken(id: string, accessToken: string) {
-    const user = await this.userRepository.findOne({
-      where: {
-        _id: id,
-        accessToken: Like(`%${accessToken}%`),
-      },
-      // select: userColumns,
-    });
+    const user = await this.findOneByIdRaw(id);
+    if (!user) throw new NotFoundException(`Usuario no encontrado`);
+    const hasAccess = user.accessToken?.includes(accessToken);
+    if (!hasAccess) throw new NotFoundException(`Token inválido`);
     return user;
   }
 

@@ -193,7 +193,6 @@ export class AuthService {
       body.refreshToken,
     );
     const user = await this.userService.findOneById(decodePayload._id);
-    console.log('🚀 ~ AuthService ~ refreshTokens ~ user:', user);
     const findUser = await this.userService.findOneByIdAndTokens(
       decodePayload._id,
       [body.accessToken, body.refreshToken],
@@ -209,10 +208,15 @@ export class AuthService {
     findUser.accessToken = findUser.accessToken.filter(
       (tk) => tk != body.accessToken,
     );
-    // await this.userService.saveUser(findUser);
+    findUser.refreshToken = findUser.refreshToken.filter(
+      (tk) => tk != body.refreshToken,
+    );
+    findUser.accessToken.push(tokens.accessToken);
+    findUser.refreshToken.push(tokens.refreshToken);
+    await this.userService.saveUser(findUser);
     return {
       accessToken: tokens.accessToken,
-      refreshToken: body.refreshToken,
+      refreshToken: tokens.refreshToken,
     };
   }
 
