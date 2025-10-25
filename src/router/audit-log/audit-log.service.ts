@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { PaginationDto } from 'src/shared/dto/pagination-query.dto';
 import { Repository } from 'typeorm';
-import { UpdateAuditLogDto } from './dto/update-audit-log.dto';
 import { AuditLog } from './entities/audit-log.entity';
 
 @Injectable()
@@ -16,16 +16,16 @@ export class AuditLogService {
     await this.auditRepo.save(log);
   }
 
-  findAll() {
-    return `This action returns all auditLog`;
+  async findAll(pagination: PaginationDto) {
+    const { limit, offset } = pagination;
+    const auditLogs = await this.auditRepo.find({ skip: offset, take: limit });
+    const total = await this.auditRepo.count();
+
+    return { auditLogs, total };
   }
 
   findOne(id: number) {
     return `This action returns a #${id} auditLog`;
-  }
-
-  update(id: number, updateAuditLogDto: UpdateAuditLogDto) {
-    return `This action updates a #${id} auditLog`;
   }
 
   remove(id: number) {

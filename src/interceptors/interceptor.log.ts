@@ -45,6 +45,9 @@ export class AuditInterceptor implements NestInterceptor {
       tap(async (responseData) => {
         // 4. Envolver la lógica de auditoría en un bloque try...catch
         try {
+          const ignoredMethods = ['GET', 'OPTIONS', 'HEAD'];
+          if (ignoredMethods.includes(method)) return;
+
           const auditData = {
             userId: user?._id, // Usar _id si ese es tu identificador principal
             userEmail: user?.email,

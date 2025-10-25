@@ -78,11 +78,11 @@ export class User extends AuditableEntity {
   @ApiProperty({ description: 'Imagen de perfil' })
   profileImg: string;
 
-  @Column('simple-array', { default: null, nullable: true })
+  @Column('json', { default: null, nullable: true })
   @ApiProperty({ required: false, description: 'Tokens de acceso' })
   accessToken: string[];
 
-  @Column('simple-array', { default: null, nullable: true })
+  @Column('json', { default: null, nullable: true })
   @ApiProperty({ required: false, description: 'Tokens de refresco' })
   refreshToken: string[];
 
