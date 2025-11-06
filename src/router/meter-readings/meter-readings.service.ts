@@ -385,21 +385,25 @@ export class MeterReadingsService {
   async sumAllMeterReadingsByMonth(date: FilterDateDto) {
     const { startDate, endDate } = date;
     if (!startDate || !endDate)
-      throw new NotAcceptableException(`El rango de fechas son requeridas`);
+      throw new NotAcceptableException(`El rango de fechas es requerido`);
 
-    // Suma total
-    const rawTotal = await this.meterReadingRepository
+    // Construir la consulta base con el filtro de fechas
+    const baseQuery = this.meterReadingRepository
       .createQueryBuilder('meter_reading')
-      .leftJoin('meter_reading.waterMeter', 'waterMeter')
+      .where('meter_reading.date >= :startDate', { startDate })
+      .andWhere('meter_reading.date <= :endDate', { endDate });
+
+    // Suma total (usando la consulta base)
+    const rawTotal = await baseQuery
+      .clone() // Clonar para no afectar la consulta original
       .select('SUM(meter_reading.cubicMeters)', 'sumTotal')
       .getRawOne<{ sumTotal: string | null }>();
 
     const sumTotal = Number(rawTotal?.sumTotal ?? 0);
 
-    // Suma mensual
-    const monthlyRaw = await this.meterReadingRepository
-      .createQueryBuilder('meter_reading')
-      .leftJoin('meter_reading.waterMeter', 'waterMeter')
+    // Suma mensual (usando la consulta base)
+    const monthlyRaw = await baseQuery
+      .clone() // Clonar de nuevo
       .select([
         `DATE_FORMAT(meter_reading.date, '%Y-%m') AS month`,
         `SUM(meter_reading.cubicMeters) AS totalCubicMeters`,
@@ -475,6 +479,7 @@ export class MeterReadingsService {
         'waterMeter.surname',
         'waterMeter.ci',
         'waterMeter.meter_number',
+        'invoice.isPaid',
         'invoice.status',
       ])
       .orderBy('meter_reading.date', 'ASC')
