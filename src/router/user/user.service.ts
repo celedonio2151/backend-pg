@@ -32,6 +32,25 @@ export class UserService {
     private readonly hashService: HashService,
   ) {}
 
+  // ========== CREA ROLES POR DEFECTO ==========
+  async onApplicationBootstrap() {
+    const role = await this.roleService.findOneByName('ADMIN');
+    const defaultUser: CreateUserDto = {
+      ci: 12345678,
+      phoneNumber: '123456789',
+      name: 'Admin',
+      surname: 'Admin',
+      email: 'admin@gmail.com',
+      password: await this.hashService.encrypt('123456789'),
+      role_id: [role._id],
+    };
+
+    const user = await this.userRepository.findOne({
+      where: { email: defaultUser.email },
+    });
+    if (!user) await this.create(defaultUser);
+  }
+
   // ========== CREA UN NUEVO USUARIO ===========
   async create(body: CreateUserDto, filename?: string) {
     if (body.email) {
