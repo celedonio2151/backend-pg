@@ -178,7 +178,26 @@ export class WaterMetersService {
   }
 
   async findOneById(id: string) {
-    const meter = await this.waterMeterRepository.findOneBy({ _id: id });
+    const baseQuery =
+      this.waterMeterRepository.createQueryBuilder('waterMeter');
+    baseQuery.leftJoinAndSelect('waterMeter.user', 'user');
+    baseQuery.where('waterMeter._id = :id', { id });
+    baseQuery.select([
+      'waterMeter._id',
+      'waterMeter.meter_number',
+      'waterMeter.status',
+      'waterMeter.createdAt',
+      'waterMeter.updatedAt',
+      'waterMeter.deletedAt',
+      'waterMeter.user_id', // ← NECESARIO
+      'user._id', // ← NECESARIO
+      'user.ci',
+      'user.name',
+      'user.surname',
+      'user.status',
+    ]);
+
+    const meter = await baseQuery.clone().getOne();
     if (!meter)
       throw new NotFoundException(`Medidor de agua ${id} no registrado`);
     return meter;
@@ -192,14 +211,13 @@ export class WaterMetersService {
     return user;
   }
 
-  async update(id: string, updateWaterMeterDto: UpdateWaterMeterDto) {
+  async update(id: string, body: UpdateWaterMeterDto) {
     const waterMeter = await this.waterMeterRepository.findOneBy({ _id: id });
     if (!waterMeter)
       throw new NotFoundException(`Medidor de agua ${id} no encontrado`);
-    const updateData = {
-      status: updateWaterMeterDto.status,
-    };
-    Object.assign(waterMeter, updateData);
+    if (body.user_id)
+      waterMeter.user = await this.findUserByIdStatusTrue(body.user_id);
+    Object.assign(waterMeter, body);
     console.log(waterMeter);
     return await this.waterMeterRepository.save(waterMeter);
   }
