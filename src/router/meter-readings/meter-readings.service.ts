@@ -103,6 +103,7 @@ export class MeterReadingsService {
       .createQueryBuilder('meter_reading')
       .leftJoinAndSelect('meter_reading.waterMeter', 'waterMeter')
       .leftJoinAndSelect('meter_reading.invoice', 'invoice')
+      .leftJoinAndSelect('waterMeter.user', 'user')
       .where('meter_reading.date >= :startDate', { startDate })
       .andWhere('meter_reading.date <= :endDate', { endDate });
 

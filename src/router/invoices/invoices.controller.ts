@@ -1,22 +1,22 @@
 import {
-    Body,
-    Controller,
-    Get,
-    Param,
-    Patch,
-    Post,
-    Put,
-    Query,
-    Res,
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Put,
+  Query,
+  Res,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { generateNamePDF } from 'src/helpers/generateNamePDF';
 import { ReceiveNotificationDTO } from 'src/router/invoices/dto/recieve-notification.dto';
 import {
-    FilterDateDto,
-    ModePDFQueryDto,
-    OrderQueryDTO,
+  FilterDateDto,
+  ModePDFQueryDto,
+  OrderQueryDTO,
 } from 'src/shared/dto/queries.dto';
 import { PayManyMonthsDto, UpdateInvoiceDto } from './dto/update-invoice.dto';
 import { InvoicesService } from './invoices.service';

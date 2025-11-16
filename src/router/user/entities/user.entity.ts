@@ -5,6 +5,7 @@ import {
   Entity,
   JoinTable,
   ManyToMany,
+  OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
@@ -12,6 +13,7 @@ import {
 import { AuditableEntity } from 'src/configs/auditable-entity.config';
 import { BoardDirector } from 'src/router/board-directors/entities/board-director.entity';
 import { Role } from 'src/router/roles/entities/role.entity';
+import { WaterMeter } from 'src/router/water-meters/entities/water-meter.entity';
 export enum Providers {
   GOOGLE = 'GOOGLE',
   FACEBOOK = 'FACEBOOK',
@@ -98,6 +100,9 @@ export class User extends AuditableEntity {
   @JoinTable({ name: 'user_role' })
   @ApiProperty({ type: () => [Role], description: 'Roles del usuario' })
   roles: Role[];
+
+  @OneToMany(() => WaterMeter, (waterMeter) => waterMeter.user)
+  waterMeters: WaterMeter[];
 
   @OneToOne(() => BoardDirector, (boardDirector) => boardDirector.user, {
     cascade: true,

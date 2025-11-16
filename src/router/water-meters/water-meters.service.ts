@@ -6,7 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { getFirstLastDayYear } from 'src/helpers/calculateEveryone';
 import { PaginationDto } from 'src/shared/dto/pagination-query.dto';
-import { FilterDateDto } from 'src/shared/dto/queries.dto';
+import { FilterDateDto, StatusQueryDto } from 'src/shared/dto/queries.dto';
 import { Repository } from 'typeorm';
 import { User } from '../user/entities/user.entity';
 import { CreateWaterMeterDto } from './dto/create-water-meter.dto';
@@ -28,9 +28,25 @@ export class WaterMetersService {
         `El medidor de agua ${body.meter_number} ya existe`,
       );
     // Buscar el usuario antes de insertar
-    const waterMeter = this.waterMeterRepository.create(body);
-    return this.waterMeterRepository.save(waterMeter);
+    const findUser = await this.findUserByIdStatusTrue(body.user_id);
+    const newWaterMeter = this.waterMeterRepository.create(body);
+    newWaterMeter.user = findUser;
+    const {
+      user: {
+        password,
+        accessToken,
+        refreshToken,
+        emailVerified,
+        codeVerification,
+        phoneVerified,
+        authProvider,
+        ...user
+      },
+      ...waterMeter
+    } = await this.waterMeterRepository.save(newWaterMeter);
+    return { ...user, waterMeter };
   }
+
   async createOnlyMeter(body: CreateWaterMeterDto) {
     // Buscar el medidor antes de insertar
     if (await this.findOneByMeterNumberRaw(body.meter_number))
@@ -38,31 +54,46 @@ export class WaterMetersService {
         `El medidor de agua ${body.meter_number} ya existe`,
       );
     // Buscar usuario existente y activo
-    const user = await this.userRepository.findOne({
-      where: { ci: body.ci, status: true },
-    });
-    if (!user)
-      throw new NotFoundException(`El usuario con CI ${body.ci} no existe`);
+    const user = await this.findUserByIdStatusTrue(body.user_id);
     // Busca un usuario por CI, si existe reutiliza sus datos
-    const waterMeter = await this.findOneByCIRaw(body.ci);
-    if (waterMeter) {
-      const newWaterMeter = this.waterMeterRepository.create({
-        ...body,
-        name: waterMeter.name,
-        surname: waterMeter.surname,
-      });
-      return this.waterMeterRepository.save(newWaterMeter);
-    }
+    const newWaterMeter = this.waterMeterRepository.create(body);
+    newWaterMeter.user = user; // Asigna el id de usuario al medidor
+    return await this.waterMeterRepository.save(newWaterMeter);
   }
 
-  async findAll(pagination: PaginationDto, status?: boolean) {
-    const { limit, offset } = pagination;
-    const [waterMeters, total] = await this.waterMeterRepository.findAndCount({
-      where: { status },
-      order: { createdAt: 'DESC' },
-      skip: offset,
-      take: limit,
-    });
+  async findAll(pagination: PaginationDto, statusValue: StatusQueryDto) {
+    let { limit, offset } = pagination;
+    limit = limit ? limit : 20;
+    offset = offset ? offset : 0;
+    const { status } = statusValue;
+
+    const baseQuery =
+      this.waterMeterRepository.createQueryBuilder('waterMeter');
+    if (status !== undefined) baseQuery.where({ status });
+    baseQuery.orderBy('waterMeter.createdAt', 'DESC');
+    baseQuery.leftJoinAndSelect('waterMeter.user', 'user');
+    baseQuery.select([
+      'waterMeter._id',
+      'waterMeter.meter_number',
+      'waterMeter.status',
+      'waterMeter.createdAt',
+      'waterMeter.updatedAt',
+      'waterMeter.deletedAt',
+      'waterMeter.user_id', // ← NECESARIO
+      'user._id', // ← NECESARIO
+      'user.ci',
+      'user.name',
+      'user.surname',
+      'user.email',
+      'user.phoneNumber',
+      'user.profileImg',
+      'user.status',
+    ]);
+    baseQuery.skip(offset);
+    baseQuery.take(limit);
+
+    const waterMeters = await baseQuery.clone().getMany();
+    const total = await baseQuery.clone().getCount();
     return { limit, offset, total, waterMeters };
   }
 
@@ -96,7 +127,9 @@ export class WaterMetersService {
   }
 
   async findOneByCI(ci: number) {
-    const meters = await this.waterMeterRepository.findOne({ where: { ci } });
+    const meters = await this.waterMeterRepository.findOne({
+      where: { _id: '' },
+    });
     if (meters) {
       throw new NotFoundException(`La ci ${ci} no esta registrado`);
     }
@@ -104,11 +137,11 @@ export class WaterMetersService {
   }
 
   async findOneByCIRaw(ci: number) {
-    return await this.waterMeterRepository.findOne({ where: { ci } });
+    return await this.waterMeterRepository.findOne({ where: { _id: '' } });
   }
 
   async findManyByCI(ci: number) {
-    const meters = await this.waterMeterRepository.findBy({ ci });
+    const meters = await this.waterMeterRepository.findBy({ _id: '' });
     if (meters?.length === 0) {
       throw new NotFoundException(`No hay medidores registrados ${ci}`);
     }
@@ -149,6 +182,14 @@ export class WaterMetersService {
     if (!meter)
       throw new NotFoundException(`Medidor de agua ${id} no registrado`);
     return meter;
+  }
+
+  async findUserByIdStatusTrue(user_id: string) {
+    const user = await this.userRepository.findOne({
+      where: { _id: user_id, status: true },
+    });
+    if (!user) throw new NotFoundException(`Usuario ${user_id} no registrado`);
+    return user;
   }
 
   async update(id: string, updateWaterMeterDto: UpdateWaterMeterDto) {

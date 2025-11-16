@@ -1,20 +1,18 @@
 import { AuditableEntity } from 'src/configs/auditable-entity.config';
 import { MeterReading } from 'src/router/meter-readings/entities/meter-reading.entity';
-import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { User } from 'src/router/user/entities/user.entity';
+import {
+  Column,
+  Entity,
+  ManyToOne,
+  OneToMany,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 
 @Entity()
 export class WaterMeter extends AuditableEntity {
   @PrimaryGeneratedColumn('uuid')
   _id: string;
-
-  @Column({ unique: false })
-  ci: number;
-
-  @Column()
-  name: string;
-
-  @Column()
-  surname: string;
 
   @Column({ unique: true })
   meter_number: number;
@@ -22,8 +20,14 @@ export class WaterMeter extends AuditableEntity {
   @Column({ default: true })
   status: boolean;
 
+  @ManyToOne(() => User, (user) => user.waterMeters, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
+  user: User;
+
   @OneToMany(
-    (type) => MeterReading,
+    () => MeterReading,
     (meterReading) => meterReading.waterMeter,
     // { eager: true },
   )

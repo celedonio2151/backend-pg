@@ -35,7 +35,7 @@ export class WaterMetersController {
     type: CreateWaterMeterDto,
   })
   create(@Body() body: CreateWaterMeterDto) {
-    return this.waterMetersService.createOnlyMeter(body);
+    return this.waterMetersService.create(body);
   }
 
   // =========================== LIST ALL WATER METERS ===========================
@@ -61,7 +61,7 @@ export class WaterMetersController {
     required: false,
   })
   findAll(@Query() pagination: PaginationDto, @Query() status: StatusQueryDto) {
-    return this.waterMetersService.findAll(pagination, status.status);
+    return this.waterMetersService.findAll(pagination, status);
   }
 
   // =========================== OBTIENE LECTURAS DE UN MES ESPECIFICO ===========================

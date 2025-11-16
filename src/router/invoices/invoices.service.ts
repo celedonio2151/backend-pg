@@ -1,9 +1,9 @@
 import { HttpService } from '@nestjs/axios';
 import {
-    BadRequestException,
-    Injectable,
-    NotAcceptableException,
-    NotFoundException,
+  BadRequestException,
+  Injectable,
+  NotAcceptableException,
+  NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { AxiosError } from 'axios';
@@ -16,9 +16,9 @@ import { formatDate } from 'src/helpers/formatDate';
 import { invoiceBuilt } from 'src/libs/invoice';
 import { ReceiveNotificationDTO } from 'src/router/invoices/dto/recieve-notification.dto';
 import {
-    BodyGetTokenBNB,
-    InvoicePDF,
-    ReponseGetTokenBNB,
+  BodyGetTokenBNB,
+  InvoicePDF,
+  ReponseGetTokenBNB,
 } from 'src/router/invoices/interfaces/interfacesBNB.ForQR';
 import { MeterReadingsService } from 'src/router/meter-readings/meter-readings.service';
 import { PrinterService } from 'src/router/printer/printer.service';
@@ -51,18 +51,18 @@ export class InvoicesService {
       .createQueryBuilder('invoice')
       .leftJoinAndSelect('invoice.meterReading', 'meter_reading')
       .leftJoinAndSelect('meter_reading.waterMeter', 'waterMeter')
-      .where('invoice.meter_reading_id	 = :meterReadingId', {
+      .leftJoinAndSelect('waterMeter.user', 'user')
+      .where('invoice.meter_reading_id = :meterReadingId', {
         meterReadingId: reading._id,
       })
       .getOne();
-    console.log('🚀 ~ invoice:', invoice);
     if (!invoice)
       throw new NotFoundException(`El recibo aun no fue generado o no existe`);
     const body: InvoicePDF = {
-      ci: invoice.meterReading.waterMeter.ci,
+      ci: invoice.ownerCi,
       // number: generateCodeNumber(Number(1)),
-      name: invoice.meterReading.waterMeter.name,
-      surname: invoice.meterReading.waterMeter.surname,
+      name: invoice.ownerName,
+      surname: invoice.ownerSurname,
       meter_number: invoice.meterReading.waterMeter.meter_number,
       beforeMonth: {
         date: invoice.meterReading.beforeMonth.date,
@@ -91,17 +91,18 @@ export class InvoicesService {
       .createQueryBuilder('invoice')
       .leftJoinAndSelect('invoice.meterReading', 'meter_reading')
       .leftJoinAndSelect('meter_reading.waterMeter', 'waterMeter')
-      .where('invoice.meter_reading_id	 = :meterReadingId', {
+      .leftJoinAndSelect('waterMeter.user', 'user')
+      .where('invoice.meter_reading_id = :meterReadingId', {
         meterReadingId: reading._id,
       })
       .getOne();
     if (!invoice)
       throw new NotFoundException(`El recibo aun no fue generado o no existe`);
     const body: InvoicePDF = {
-      ci: invoice.meterReading.waterMeter.ci,
+      ci: invoice.ownerCi,
       // number: generateCodeNumber(Number(1)),
-      name: invoice.meterReading.waterMeter.name,
-      surname: invoice.meterReading.waterMeter.surname,
+      name: invoice.ownerName,
+      surname: invoice.ownerSurname,
       meter_number: invoice.meterReading.waterMeter.meter_number,
       beforeMonth: {
         date: invoice.meterReading.beforeMonth.date,
@@ -151,6 +152,9 @@ export class InvoicesService {
         continue;
       }
       const invoice = new Invoice();
+      invoice.ownerCi = reading.waterMeter.user.ci;
+      invoice.ownerName = reading.waterMeter.user.name;
+      invoice.ownerSurname = reading.waterMeter.user.surname;
       invoice.amountDue = reading.balance; // Calcula el monto adeudado según tus necesidades
       invoice.isPaid = false;
       invoice.meterReading = reading;
@@ -206,6 +210,7 @@ export class InvoicesService {
       .createQueryBuilder('invoice')
       .leftJoinAndSelect('invoice.meterReading', 'meter_reading')
       .leftJoinAndSelect('meter_reading.waterMeter', 'water_meter')
+      .leftJoinAndSelect('water_meter.user', 'user')
       .where('invoice.isPaid = :isPaid', { isPaid: false })
       .andWhere('invoice.deletedAt IS NULL')
       .andWhere('meter_reading.deletedAt IS NULL')
@@ -213,7 +218,7 @@ export class InvoicesService {
 
     // ✅ Filtro por CI (opcional)
     if (ci && ci > 0) {
-      queryBase.andWhere('water_meter.ci = :ci', { ci });
+      queryBase.andWhere('user.ci = :ci', { ci });
     }
 
     // ✅ Filtros por fecha (opcionales)
@@ -237,7 +242,7 @@ export class InvoicesService {
 
       // ✅ Información adicional útil
       const uniqueUsers = new Set(
-        invoices.map((inv) => inv.meterReading?.waterMeter?.ci),
+        invoices.map((inv) => inv.meterReading?.waterMeter?.user?.ci),
       );
       const dateRange =
         invoices.length > 0
@@ -340,6 +345,7 @@ export class InvoicesService {
       .createQueryBuilder('invoice')
       .leftJoinAndSelect('invoice.meterReading', 'meter_reading')
       .leftJoinAndSelect('meter_reading.waterMeter', 'waterMeter')
+      .leftJoinAndSelect('waterMeter.user', 'user')
       .where('meter_reading._id = :readingId', { readingId })
       .getOne();
     if (!invoiceInnerReading)
@@ -366,9 +372,9 @@ export class InvoicesService {
       bankBNB: response,
       aditional: {
         name:
-          invoiceInnerReading.meterReading.waterMeter.name +
+          invoiceInnerReading.ownerName +
           ' ' +
-          invoiceInnerReading.meterReading.waterMeter.surname,
+          invoiceInnerReading.ownerSurname,
         month: invoiceInnerReading.meterReading.date,
         ...body,
       },
@@ -383,6 +389,7 @@ export class InvoicesService {
       .createQueryBuilder('invoice')
       .leftJoinAndSelect('invoice.meterReading', 'meter_reading')
       .leftJoinAndSelect('meter_reading.waterMeter', 'waterMeter')
+      .leftJoinAndSelect('waterMeter.user', 'user')
       .where('meter_reading._id = :readingId', { readingId })
       .getOne();
     // console.log('🚀 reading:', invoiceInnerReading);
@@ -417,9 +424,9 @@ export class InvoicesService {
         bankBNB: JSON.parse(data),
         aditional: {
           name:
-            invoiceInnerReading.meterReading.waterMeter.name +
+            invoiceInnerReading.ownerName +
             ' ' +
-            invoiceInnerReading.meterReading.waterMeter.surname,
+            invoiceInnerReading.ownerSurname,
           month: invoiceInnerReading.meterReading.date,
           ...body,
         },

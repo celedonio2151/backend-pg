@@ -81,10 +81,8 @@ export class UserService {
     // Si hay numero de medidor registrar
     if (body.meter_number) {
       const body2: CreateWaterMeterDto = {
-        ci: newUser.ci,
-        name: newUser.name,
-        surname: newUser.surname,
         meter_number: body.meter_number,
+        user_id: newUser._id,
       };
       await this.waterService.create(body2);
     }

@@ -24,6 +24,15 @@ export class Invoice extends AuditableEntity {
   @Column({ default: true })
   status: boolean;
 
+  @Column()
+  ownerCi: number;
+
+  @Column()
+  ownerName: string;
+
+  @Column()
+  ownerSurname: string;
+
   @OneToOne(() => MeterReading, (meterReading) => meterReading.invoice, {
     eager: true,
   })
