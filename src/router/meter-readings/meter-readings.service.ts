@@ -98,9 +98,19 @@ export class MeterReadingsService {
 
     const baseQuery = this.meterReadingRepository
       .createQueryBuilder('meter_reading')
-      .leftJoinAndSelect('meter_reading.waterMeter', 'waterMeter')
-      .leftJoinAndSelect('meter_reading.invoice', 'invoice')
-      .leftJoinAndSelect('waterMeter.user', 'user')
+      .leftJoin('meter_reading.waterMeter', 'waterMeter')
+      .leftJoin('meter_reading.invoice', 'invoice')
+      .leftJoin('waterMeter.user', 'user')
+      .select([
+        'meter_reading',
+        'waterMeter',
+        'invoice',
+        'user._id',
+        'user.name',
+        'user.surname',
+        'user.ci',
+        'user.phoneNumber',
+      ])
       .where('meter_reading.date >= :startDate', { startDate })
       .andWhere('meter_reading.date <= :endDate', { endDate });
 
