@@ -30,7 +30,6 @@ export class MeterReadingsService {
     body: CreateMeterReadingDto,
     file: Express.Multer.File,
   ): Promise<MeterReading> {
-    // console.log('🚀 ~ MeterReadingsService ~ body:', body);
     const waterMeter = await this.waterMeterService.findOneById(
       body.water_meterId,
     ); // Find the water meter
@@ -42,40 +41,38 @@ export class MeterReadingsService {
           `Nueva lectura no es secuencial. La última lectura fue en el mes: ${formatDate(lastReading.date)}`,
         );
     }
-    const existMonth = await this.findRepeatReadingsMonth(
-      body.water_meterId,
-      new Date(body.date),
-    ); // Check if there is a reading for the same month
-    if (existMonth)
-      throw new NotAcceptableException(`Ya se lecturo para este mes`);
     // Verificar que el valor no debe ser inferior al anterior
-    const beforeMonthAux = body.beforeMonth;
-    if (beforeMonthAux.value > body.lastMonthValue)
+    const beforeMonthAux = lastReading?.lastMonth.value || 0;
+    if (beforeMonthAux > body.lastMonthValue)
       throw new NotAcceptableException(
-        `El valor ${body.lastMonthValue} debe ser mayor al anterior ${beforeMonthAux.value}`,
+        `El valor ${body.lastMonthValue} debe ser mayor al anterior ${beforeMonthAux}`,
       );
-    const cubicMeters = body.lastMonthValue - body.beforeMonth.value;
+    const cubicMeters = body.lastMonthValue - beforeMonthAux;
     const balanceRaw = await this.billingService.calculateBalance(cubicMeters);
     const balance = typeof balanceRaw === 'number' ? balanceRaw : undefined;
-    const body2 = {
-      beforeMonth: beforeMonthAux,
+
+    const lastMeterReading = lastReading?.lastMonth || {
       date: body.date,
+      value: 0,
+    };
+    const body2 = {
+      date: body.date,
+      beforeMonth: lastMeterReading,
       lastMonth: {
         date: body.date,
-        meterValue: body.lastMonthValue,
+        value: body.lastMonthValue,
       },
       cubicMeters: cubicMeters,
       balance: body.balance || balance,
       description: body.description || '',
       meterImage: file?.filename,
-      waterMeter: waterMeter,
     };
 
     const newReading = this.meterReadingRepository.create(body2); // Save id Water Meter
-    // newReading.waterMeter = waterMeter; // Assign the water meter to the reading
-    // return await this.meterReadingRepository.save(newReading);
-    console.log(newReading);
-    return newReading;
+    newReading.waterMeter = waterMeter; // Assign the water meter to the reading
+    return await this.meterReadingRepository.save(newReading);
+    // console.log(newReading);
+    // return newReading;
   }
 
   // ========== ENCONTRAR LECTURA DUPLICADA AL MES |================
@@ -163,14 +160,9 @@ export class MeterReadingsService {
     const lastMeterReading = await this.meterReadingRepository
       .createQueryBuilder('meter_reading')
       .leftJoinAndSelect('meter_reading.waterMeter', 'waterMeter')
-      .where('meter_reading.water_meter_id = :meterId', {
-        meterId: meterId,
-      })
+      .where('meter_reading.water_meter_id = :meterId', { meterId })
       .orderBy('meter_reading.date', 'DESC')
       .getOne();
-    console.log(lastMeterReading);
-    if (!lastMeterReading)
-      throw new NotFoundException(`Medidor ${meterId} no registrado`);
     return lastMeterReading;
   }
 
