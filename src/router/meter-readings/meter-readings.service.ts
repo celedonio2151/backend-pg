@@ -16,6 +16,7 @@ import { FilterDateDto, OrderQueryDTO } from 'src/shared/dto/queries.dto';
 import { CreateMeterReadingDto } from './dto/create-meter-reading.dto';
 import { UpdateMeterReadingDto } from './dto/update-meter-reading.dto';
 import { MeterReading } from './entities/meter-reading.entity';
+import { WaterMeter } from 'src/router/water-meters/entities/water-meter.entity';
 
 @Injectable()
 export class MeterReadingsService {
@@ -113,6 +114,7 @@ export class MeterReadingsService {
       ])
       .where('meter_reading.date >= :startDate', { startDate })
       .andWhere('meter_reading.date <= :endDate', { endDate });
+    // .andWhere('waterMeter.status = :status', { status: 1 });
 
     if (!startDate || !endDate) {
       const [readings, total] = await this.meterReadingRepository.findAndCount({
