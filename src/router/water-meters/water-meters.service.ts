@@ -236,6 +236,7 @@ export class WaterMetersService {
 
     const baseQuery = this.waterMeterRepository
       .createQueryBuilder('waterMeter')
+      .leftJoin('waterMeter.user', 'user')
       .leftJoin('waterMeter.meterReadings', 'meter_reading')
       .leftJoin('meter_reading.invoice', 'invoice')
       .where('meter_reading.date >= :startDate', { startDate })
@@ -243,16 +244,18 @@ export class WaterMetersService {
 
     const [readings, totalMeters] = await this.waterMeterRepository
       .createQueryBuilder('waterMeter')
+      .leftJoin('waterMeter.user', 'user')
       .leftJoin('waterMeter.meterReadings', 'meter_reading')
       .leftJoin('meter_reading.invoice', 'invoice')
       .where('meter_reading.date >= :startDate', { startDate })
       .andWhere('meter_reading.date <= :endDate', { endDate })
       .select([
         // Campos del waterMeter necesarios para construir el objeto
-        // 'waterMeter._id',
-        'waterMeter.ci',
-        'waterMeter.name',
-        'waterMeter.surname',
+        'user._id',
+        'user.ci',
+        'user.name',
+        'user.surname',
+        'waterMeter._id',
         'waterMeter.meter_number',
         'waterMeter.status',
         // Campos del meter_reading necesarios
@@ -273,7 +276,7 @@ export class WaterMetersService {
       .clone()
       .select([
         'SUM(meter_reading.cubicMeters) as totalCubes',
-        'SUM(invoice.amountDue) as totalBilled',
+        'SUM(meter_reading.balance) as totalBilled',
         'SUM(CASE WHEN invoice.isPaid = false THEN invoice.amountDue ELSE 0 END) as pendingAmount',
         'SUM(CASE WHEN invoice.isPaid = true THEN invoice.amountDue ELSE 0 END) as paidAmount',
       ])

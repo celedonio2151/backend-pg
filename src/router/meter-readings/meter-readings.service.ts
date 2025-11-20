@@ -448,8 +448,9 @@ export class MeterReadingsService {
 
     const baseQuery = this.meterReadingRepository
       .createQueryBuilder('meter_reading')
-      .leftJoinAndSelect('meter_reading.waterMeter', 'waterMeter')
       .leftJoinAndSelect('meter_reading.invoice', 'invoice')
+      .leftJoinAndSelect('meter_reading.waterMeter', 'waterMeter')
+      .leftJoinAndSelect('waterMeter.user', 'user')
       .where('meter_reading.date >= :startDate', { startDate })
       .andWhere('meter_reading.date <= :endDate', { endDate });
 
@@ -480,10 +481,12 @@ export class MeterReadingsService {
         'meter_reading.cubicMeters',
         'meter_reading.balance',
         'meter_reading.date',
-        'waterMeter.name',
-        'waterMeter.surname',
-        'waterMeter.ci',
+        'user._id',
+        'user.ci',
+        'user.name',
+        'user.surname',
         'waterMeter.meter_number',
+        'waterMeter.status',
         'invoice.isPaid',
         'invoice.status',
       ])
@@ -548,7 +551,7 @@ export class MeterReadingsService {
     const annualTotals = await baseQuery
       .clone()
       .select('SUM(meter_reading.cubicMeters)', 'totalCubicMeters')
-      .addSelect('SUM(invoice.amountDue)', 'totalBalance')
+      .addSelect('SUM(meter_reading.balance)', 'totalBalance')
       .addSelect(
         'SUM(CASE WHEN invoice.isPaid = false THEN invoice.amountDue ELSE 0 END)',
         'pendingAmount',
@@ -597,7 +600,7 @@ export class MeterReadingsService {
       },
       year: new Date(startDate).getFullYear(),
       summary: {
-        totalMeters: allMonthsData.length,
+        totalMonths: allMonthsData.length,
         totalCubes: Number(annualTotals?.totalCubicMeters) || 0,
         totalBilled: Number(annualTotals?.totalBalance) || 0,
         pendingAmount: Number(annualTotals?.pendingAmount) || 0,
