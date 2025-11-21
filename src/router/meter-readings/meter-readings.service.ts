@@ -184,8 +184,37 @@ export class MeterReadingsService {
     const meterReading = await this.meterReadingRepository
       .createQueryBuilder('meter_reading')
       .leftJoinAndSelect('meter_reading.waterMeter', 'waterMeter')
+      .leftJoinAndSelect('waterMeter.user', 'user')
       .leftJoinAndSelect('meter_reading.invoice', 'invoice')
-      .where('meter_reading._id >= :_id', { _id })
+      .where('meter_reading._id = :_id', { _id })
+      .select([
+        // Campos del usuario necesarios para construir el objeto
+        'user._id',
+        'user.ci',
+        'user.name',
+        'user.surname',
+        'user.phoneNumber',
+        // Campos del waterMeter necesarios para construir el objeto
+        'waterMeter._id',
+        'waterMeter.meter_number',
+        'waterMeter.status',
+        // Campos del meter_reading necesarios
+        'meter_reading._id',
+        'meter_reading.date',
+        'meter_reading.beforeMonth',
+        'meter_reading.lastMonth',
+        'meter_reading.cubicMeters',
+        'meter_reading.balance',
+        'meter_reading.description',
+        // Campos del invoice necesarios
+        'invoice._id',
+        'invoice.ownerCi',
+        'invoice.ownerName',
+        'invoice.ownerSurname',
+        'invoice.amountDue',
+        'invoice.isPaid',
+        'invoice.status',
+      ])
       .getOne();
     if (!meterReading) {
       throw new NotFoundException(`La lectura no fue encontrada`);
