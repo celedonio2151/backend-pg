@@ -19,17 +19,16 @@ export class SeedersModule {
 
     console.log('🌱 Seeding base de datos...');
 
-    // Crear roles
-    // const userRole = dataSource.manager.create(Role, {
-    //   name: 'ADMIN',
-    //   description: 'Administrador',
-    // });
-    const userRole = {
-      name: 'USER',
-      description: 'Usuario normal',
-    };
-    await dataSource.manager.save(Role, userRole);
-
+    // LOS ROLES SE CREAN POR DEFECTO CON -> USER, ADMIN
+    // Buscar en la base de datos
+    const userRole = await dataSource.manager.findOne(Role, {
+      where: { name: 'USER' },
+    });
+    if (!userRole) {
+      throw new Error(
+        '❌ No se encontró el rol USER. Asegúrate de que los roles se creen al iniciar el sistema.',
+      );
+    }
     // Utilidad para calcular balance
     const calcularBalance = (cubicMeters: number): number => {
       if (cubicMeters <= 6) return 20;
@@ -42,7 +41,7 @@ export class SeedersModule {
     const generarFechasMensuales = (): Date[] => {
       const fechas: Date[] = [];
       const start = new Date('2023-01-20');
-      const end = new Date('2025-05-20');
+      const end = new Date('2025-10-20');
       let current = new Date(start);
       while (current <= end) {
         fechas.push(new Date(current));
@@ -63,7 +62,7 @@ export class SeedersModule {
         phoneNumber: faker.number
           .int({ min: 60000000, max: 79999999 })
           .toString(),
-        password: '',
+        password: 'Password20xx!',
         status: true,
         email: faker.internet.email(),
         roles: [userRole],
@@ -72,10 +71,8 @@ export class SeedersModule {
 
       // Crear medidor
       const waterMeter = dataSource.manager.create(WaterMeter, {
-        ci: user.ci,
-        meter_number: faker.number.int({ min: 100000, max: 99999999 }),
-        name: user.name,
-        surname: user.surname,
+        meter_number: faker.number.int({ min: 10000000, max: 99999999 }),
+        user: user,
       });
       await dataSource.manager.save(WaterMeter, waterMeter);
 

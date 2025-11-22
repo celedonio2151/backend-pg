@@ -62,9 +62,9 @@ export class WaterMetersService {
   }
 
   async findAll(pagination: PaginationDto, statusValue: StatusQueryDto) {
-    let { limit, offset } = pagination;
-    limit = limit ? limit : 20;
-    offset = offset ? offset : 0;
+    const { limit, offset } = pagination;
+    // limit = limit ? limit : 20;
+    // offset = offset ? offset : 0;
     const { status } = statusValue;
 
     const baseQuery =

@@ -21,8 +21,8 @@ export class WaterMeter extends AuditableEntity {
   status: boolean;
 
   @ManyToOne(() => User, (user) => user.waterMeters, {
-    nullable: true,
-    onDelete: 'SET NULL',
+    nullable: false,
+    onDelete: 'RESTRICT',
   })
   user: User;
 
