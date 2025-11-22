@@ -63,6 +63,16 @@ export class UserService {
       );
     const ci = await this.findOneUserByCIRaw(body.ci);
     if (ci) throw new ConflictException(`El ci ${body.ci} ya esta registrado`);
+    // buscar si el medidor ya esta registrado
+    if (body.meter_number) {
+      const waterMeter = await this.waterService.findOneByMeterNumberRaw(
+        body.meter_number,
+      );
+      if (waterMeter)
+        throw new ConflictException(
+          `El medidor ${body.meter_number} ya esta registrado`,
+        );
+    }
     const newUser = this.userRepository.create(body);
     if (body.role_id?.length) {
       const roles = await Promise.all(
@@ -302,7 +312,6 @@ export class UserService {
         );
     }
     // Validar roles y si es ADMIN debe tener email
-    // En lugar del bucle
     if (body.role_id) {
       const roles = await this.roleService.findRolesInRaw(body.role_id);
       if (roles.length !== body.role_id.length) {
@@ -310,6 +319,22 @@ export class UserService {
       }
 
       const isAdmin = roles.some((role) => role.name === 'ADMIN');
+
+      // Comparar roles previos con los nuevos — solo revocar tokens si realmente cambiaron
+      const previousRoleIds = (user.roles || [])
+        .map((r) => String(r._id))
+        .sort()
+        .join(',');
+      const newRoleIds = roles
+        .map((r) => String(r._id))
+        .sort()
+        .join(',');
+      if (previousRoleIds !== newRoleIds) {
+        // El conjunto de roles cambió: cerrar sesión en todos los dispositivos borrando tokens
+        user.accessToken = [];
+        user.refreshToken = [];
+      }
+
       user.roles = roles;
 
       if (isAdmin && !(body.email || user.email)) {

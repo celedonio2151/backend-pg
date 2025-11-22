@@ -351,14 +351,37 @@ export class MeterReadingsService {
     pagination: PaginationDto,
   ) {
     const { limit, offset } = pagination;
+    // Buscar usuario por CI
+    // const user = await this.userService.findOneByCI(ci);
     const [data, total] = await this.meterReadingRepository
       .createQueryBuilder('meter_reading')
       .leftJoinAndSelect('meter_reading.waterMeter', 'waterMeter')
+      .leftJoinAndSelect('waterMeter.user', 'user')
       .leftJoinAndSelect('meter_reading.invoice', 'invoice')
-      .where('waterMeter.ci = :ci', { ci })
+      .where('user.ci = :ci', { ci })
       .orderBy('meter_reading.date', order.order)
-      .limit(limit)
-      .offset(offset)
+      .select([
+        // Campos del waterMeter necesarios para construir el objeto
+        'user._id',
+        'user.ci',
+        'user.name',
+        'user.surname',
+        'waterMeter._id',
+        'waterMeter.meter_number',
+        'waterMeter.status',
+        // Campos del meter_reading necesarios
+        'meter_reading._id',
+        'meter_reading.date',
+        'meter_reading.cubicMeters',
+        'meter_reading.balance',
+        // Campos del invoice necesarios
+        'invoice._id',
+        'invoice.amountDue',
+        'invoice.isPaid',
+        'invoice.status',
+      ])
+      .take(limit)
+      .skip(offset)
       .getManyAndCount();
     return {
       limit,

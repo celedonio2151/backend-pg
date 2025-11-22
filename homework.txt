@@ -8,3 +8,14 @@ Error o bug al hacer peticion en la ruta
 
 Al crer un usuario desde el dashboard, esta pidiendo contraseña y no deberia
 Al cambiar de rol un usuario diferente de adminsitrador deberia pedir contraseña
+
+
+
+No dejar eliminar un usuario y dejar null o heurfano un medidor
+
+
+
+contraseña por defecto al crear el primer usuario en el sistema
+ci: 123456789
+email: admin@gmail.com
+pass: 123456789
