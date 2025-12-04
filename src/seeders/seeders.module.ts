@@ -42,7 +42,7 @@ export class SeedersModule {
       const fechas: Date[] = [];
       const start = new Date('2023-01-20');
       const end = new Date('2025-10-20');
-      let current = new Date(start);
+      const current = new Date(start);
       while (current <= end) {
         fechas.push(new Date(current));
         current.setMonth(current.getMonth() + 1);

@@ -24,7 +24,7 @@ services:
     #   - mysqldbml
     volumes:
       - .:/backendMosojLlajta
-      # - /backendMosojLlajta/node_modules
+      - /backendMosojLlajta/node_modules
     ports:
       - $PORT:$PORT
 volumes:

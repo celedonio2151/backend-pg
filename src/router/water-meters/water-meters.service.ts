@@ -7,7 +7,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { getFirstLastDayYear } from 'src/helpers/calculateEveryone';
 import { PaginationDto } from 'src/shared/dto/pagination-query.dto';
 import { FilterDateDto, StatusQueryDto } from 'src/shared/dto/queries.dto';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { User } from '../user/entities/user.entity';
 import { CreateWaterMeterDto } from './dto/create-water-meter.dto';
 import { UpdateWaterMeterDto } from './dto/update-water-meter.dto';
@@ -151,6 +151,23 @@ export class WaterMetersService {
   async findOneByMeterNumberRaw(meter_number: number) {
     return await this.waterMeterRepository.findOneBy({
       meter_number,
+    });
+  }
+
+  async findByMeterNumbers(
+    meter_numbers: Array<string | number>,
+  ): Promise<WaterMeter[]> {
+    if (!meter_numbers || meter_numbers.length === 0) return [];
+
+    // Normalize inputs to numbers (the entity stores meter_number as number)
+    const numbers = meter_numbers.map((n) => Number(String(n).trim()));
+    // Filter out invalid numbers (NaN)
+    const validNumbers = numbers.filter((n) => !Number.isNaN(n));
+
+    if (validNumbers.length === 0) return [];
+
+    return await this.waterMeterRepository.find({
+      where: { meter_number: In(validNumbers) },
     });
   }
 

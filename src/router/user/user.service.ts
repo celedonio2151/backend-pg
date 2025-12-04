@@ -335,6 +335,41 @@ export class UserService {
         user.refreshToken = [];
       }
 
+      // Verificar que los medidores no esten registrados ya
+      // Validar y comprobar en batch si existen medidores
+      if (body.meter_numbers && body.meter_numbers.length > 0) {
+        const normalized = body.meter_numbers.map((m) => String(m).trim());
+
+        // Detectar duplicados en la petición
+        const dupes = normalized.filter((v, i, a) => a.indexOf(v) !== i);
+        if (dupes.length > 0) {
+          throw new ConflictException(
+            `Medidores duplicados en la petición: ${[...new Set(dupes)].join(', ')}`,
+          );
+        }
+
+        const uniqueMeters = [...new Set(normalized)];
+
+        // Requiere implementar este método en waterService para hacer una consulta IN(...)
+        const existingMeters =
+          await this.waterService.findByMeterNumbers(uniqueMeters);
+
+        if (existingMeters && existingMeters.length > 0) {
+          // Ajusta la propiedad según tu entidad, p.e. 'meter_number' o 'number'
+          const existingNumbers = existingMeters.map((w) =>
+            String(w.meter_number ?? w.meter_number).trim(),
+          );
+          const conflicts = uniqueMeters.filter((n) =>
+            existingNumbers.includes(n),
+          );
+          if (conflicts.length > 0) {
+            throw new ConflictException(
+              `Los siguientes medidores ya están registrados: ${conflicts.join(', ')}`,
+            );
+          }
+        }
+      }
+
       user.roles = roles;
 
       if (isAdmin && !(body.email || user.email)) {
