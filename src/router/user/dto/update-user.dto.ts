@@ -1,15 +1,15 @@
 import { ApiProperty, PartialType, PickType } from '@nestjs/swagger';
 import {
+  IsArray,
   IsEmail,
   IsNotEmpty,
   IsOptional,
+  IsNumber,
   Min,
   Max,
-  IsArray,
-  IsNumber,
+  ArrayMinSize,
 } from 'class-validator';
-
-import { CreateUserDto } from 'src/router/user/dto/create-user.dto';
+import { CreateUserDto } from './create-user.dto';
 
 export class UpdateUserDto extends PartialType(
   PickType(CreateUserDto, [
@@ -23,39 +23,22 @@ export class UpdateUserDto extends PartialType(
     'role_id',
   ] as const),
 ) {
-  @ApiProperty({
-    description: 'Correo electrónico del usuario (único y opcional)',
-    example: 'juan.perez@example.com',
-    format: 'email',
-    type: 'string',
-    required: false,
-    pattern: '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$',
-    minLength: 5,
-    maxLength: 100,
-  })
-  @IsEmail({}, { message: 'Debe ser un formato de email válido' })
+  @ApiProperty({ required: false })
+  @IsEmail()
   @IsOptional()
-  @IsNotEmpty({ message: 'El email no puede estar vacío si se proporciona' })
+  @IsNotEmpty()
   email?: string;
 
-  // Medidores de agua
   @ApiProperty({
-    description: 'Lista de número de medidores de agua asociados al usuario',
-    example: [123456789, 987654321],
-    type: 'array',
-    items: {
-      type: 'number',
-      minimum: 3,
-      maximum: 999999999,
-    },
     required: false,
+    type: [Number],
+    example: [123456],
   })
+  @IsOptional()
   @IsArray()
+  @ArrayMinSize(1)
   @IsNumber({}, { each: true })
-  @Min(3)
-  @Max(999999999)
-  @IsNotEmpty({
-    message: 'La lista de medidores no puede estar vacía si se proporciona',
-  })
+  @Min(3, { each: true })
+  @Max(999999999, { each: true })
   meter_numbers?: number[];
 }

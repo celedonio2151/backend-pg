@@ -1,8 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsDate, IsEmail, IsString, Matches } from 'class-validator';
 import {
   Column,
   Entity,
+  Index,
   JoinTable,
   ManyToMany,
   OneToMany,
@@ -28,8 +28,9 @@ export class User extends AuditableEntity {
   @ApiProperty({ description: 'UUID del usuario' })
   _id: string;
 
-  @Column({ unique: true, nullable: true, default: null })
   @ApiProperty({ description: 'Cédula de identidad' })
+  @Column({ unique: true, nullable: true, default: null })
+  @Index('IDX_USER_CI_UNIQUE', { unique: true })
   ci: number;
 
   @Column({ type: 'varchar', length: 50 })
@@ -40,9 +41,9 @@ export class User extends AuditableEntity {
   @ApiProperty({ description: 'Apellido del usuario' })
   surname: string;
 
-  @Column({ unique: true, nullable: true })
-  @IsEmail()
   @ApiProperty({ description: 'Correo electrónico del usuario' })
+  @Column({ unique: true, nullable: true })
+  @Index('IDX_USER_EMAIL_UNIQUE', { unique: true })
   email: string;
 
   @Column({ type: 'varchar', length: 500 })
@@ -57,26 +58,24 @@ export class User extends AuditableEntity {
   @ApiProperty()
   emailVerified: boolean;
 
-  @Column({ unique: true, type: 'varchar', length: 12, default: null })
-  @Matches(/^\d{8,}$/, { message: 'Número de celular inválido' })
   @ApiProperty({ description: 'Número de celular', example: '72511122' })
+  @Column({ unique: true, type: 'varchar', length: 12, default: null })
+  @Index('IDX_USER_PHONE_UNIQUE', { unique: true })
   phoneNumber: string;
 
   @Column({ type: 'boolean', default: false })
   @ApiProperty()
   phoneVerified: boolean;
 
-  @Column({ type: 'date', nullable: true })
-  @IsDate()
   @ApiProperty({
     description: 'Fecha de nacimiento',
     type: 'string',
     format: 'date',
   })
+  @Column({ type: 'date', nullable: true })
   birthDate: Date;
 
   @Column({ default: 'defaultUser.png' })
-  @IsString()
   @ApiProperty({ description: 'Imagen de perfil' })
   profileImg: string;
 

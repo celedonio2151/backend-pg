@@ -9,9 +9,13 @@ Error o bug al hacer peticion en la ruta
 Al crer un usuario desde el dashboard, esta pidiendo contraseña y no deberia
 Al cambiar de rol un usuario diferente de adminsitrador deberia pedir contraseña
 
+Al editar un usuario esta pidiendo contraseña con ROL ADMIN
+
 
 
 No dejar eliminar un usuario y dejar null o heurfano un medidor
+
+Al dar de baja un usuario tambien desactivar sus medidores
 
 
 

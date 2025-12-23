@@ -1,6 +1,8 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -45,6 +47,27 @@ export class WaterMetersService {
       ...waterMeter
     } = await this.waterMeterRepository.save(newWaterMeter);
     return { ...user, waterMeter };
+  }
+
+  // Insertar multiples medidores de agua a la vez
+  async createManyMeters(user: User, meterNumbers: number[]) {
+    if (!meterNumbers || meterNumbers.length === 0) return [];
+    // Evitar medidor duplicado
+    try {
+      const newMetersToCreate = meterNumbers.map((meter_number) => {
+        const newWaterMeter = this.waterMeterRepository.create({
+          meter_number,
+        });
+        newWaterMeter.user = user; // Asigna el objeto User a cada entidad
+        return newWaterMeter;
+      });
+      return await this.waterMeterRepository.save(newMetersToCreate);
+    } catch (error: any) {
+      console.error('Error al crear medidores:', error);
+      if (error?.code === '23505')
+        throw new ConflictException('Medidor duplicado');
+      throw new InternalServerErrorException('Error al crear medidores');
+    }
   }
 
   async createOnlyMeter(body: CreateWaterMeterDto) {

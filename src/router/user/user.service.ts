@@ -6,7 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { FindOperator, Not, Repository } from 'typeorm';
 import { UpdateUserDto } from './dto/update-user.dto';
 
 import { ConfigService } from '@nestjs/config';
@@ -21,6 +21,7 @@ import { WaterMetersService } from 'src/router/water-meters/water-meters.service
 import { PaginationDto } from 'src/shared/dto/pagination-query.dto';
 import { StatusQueryDto } from 'src/shared/dto/queries.dto';
 import { RolesService } from '../roles/roles.service';
+import { handleMysqlDuplicateError } from 'src/helpers/errorHandlerMysql';
 
 @Injectable()
 export class UserService {
@@ -153,6 +154,7 @@ export class UserService {
   async findOneById(id: string) {
     const user = await this.userRepository.findOne({
       where: { _id: id },
+      relations: { waterMeters: true },
       select: userColumns,
     });
     if (!user) throw new NotFoundException(`User ${id} not found`);
@@ -287,106 +289,74 @@ export class UserService {
   }
 
   // =============== UPDATE A USER BY ID ===============
-  async update(_id: string, body: UpdateUserDto) {
-    const user = await this.findOneByIdRaw(_id);
-    if (!user) throw new NotFoundException(`User ${_id} not found`);
+  async update(userId: string, dto: UpdateUserDto) {
+    const user = await this.findOneByIdRaw(userId); // 1 query necesaria
+    if (!user) throw new NotFoundException(`Usuario no encontrado`);
+    await this.handleRoles(user, dto);
+    this.assignSafeFields(user, dto);
 
-    // Validar email si se está cambiando
-    if (body.email && body.email !== user.email) {
-      const userEmail = await this.userRepository.findOne({
-        where: { email: body.email },
-      });
-      if (userEmail && userEmail._id !== _id)
-        throw new ConflictException(
-          `El email ${body.email} ya esta registrado`,
-        );
+    if (dto.password)
+      user.password = await this.hashService.encrypt(dto.password);
+
+    const normalized = [
+      ...new Set(dto.meter_numbers ? dto.meter_numbers.map(Number) : []),
+    ];
+
+    try {
+      await this.userRepository.save(user);
+      await this.validateAndCreate(user, normalized);
+    } catch (e) {
+      handleMysqlDuplicateError(e);
     }
-    // Validar teléfono si se está cambiando
-    if (body.phoneNumber && body.phoneNumber !== user.phoneNumber) {
-      const userPhone = await this.userRepository.findOne({
-        where: { phoneNumber: body.phoneNumber },
-      });
-      if (userPhone && userPhone._id !== _id)
-        throw new ConflictException(
-          `El celular ${body.phoneNumber} ya esta registrado`,
-        );
+    return this.findOneById(userId);
+  }
+
+  // MANEJADOR ROLES, SI ES ADMIN VERIFICAR EMAIL Y PASSWORD
+  private async handleRoles(user: User, dto: UpdateUserDto) {
+    if (!dto.role_id?.length) return;
+
+    const previous = user.roles
+      .map((r) => r._id)
+      .sort()
+      .join(',');
+
+    const roles = await this.roleService.findRolesInRaw(dto.role_id);
+    // Verificar que tenga email y password si el rol es ADMIN
+    if (roles.some((r) => r.name === 'ADMIN')) {
+      if (!dto.email || !dto.password)
+        throw new BadRequestException('Email y password son requeridos');
     }
-    // Validar roles y si es ADMIN debe tener email
-    if (body.role_id) {
-      const roles = await this.roleService.findRolesInRaw(body.role_id);
-      if (roles.length !== body.role_id.length) {
-        throw new BadRequestException('Uno o más roles no son válidos.');
-      }
+    user.roles = roles;
 
-      const isAdmin = roles.some((role) => role.name === 'ADMIN');
+    const current = roles
+      .map((r) => r._id)
+      .sort()
+      .join(',');
 
-      // Comparar roles previos con los nuevos — solo revocar tokens si realmente cambiaron
-      const previousRoleIds = (user.roles || [])
-        .map((r) => String(r._id))
-        .sort()
-        .join(',');
-      const newRoleIds = roles
-        .map((r) => String(r._id))
-        .sort()
-        .join(',');
-      if (previousRoleIds !== newRoleIds) {
-        // El conjunto de roles cambió: cerrar sesión en todos los dispositivos borrando tokens
-        user.accessToken = [];
-        user.refreshToken = [];
-      }
+    if (previous !== current) {
+      user.accessToken = [];
+      user.refreshToken = [];
+    }
+  }
 
-      // Verificar que los medidores no esten registrados ya
-      // Validar y comprobar en batch si existen medidores
-      if (body.meter_numbers && body.meter_numbers.length > 0) {
-        const normalized = body.meter_numbers.map((m) => String(m).trim());
+  async validateAndCreate(userId: User, meters: number[]) {
+    const normalized = [...new Set(meters.map(Number))];
+    const existing = await this.waterService.findByMeterNumbers(normalized);
 
-        // Detectar duplicados en la petición
-        const dupes = normalized.filter((v, i, a) => a.indexOf(v) !== i);
-        if (dupes.length > 0) {
-          throw new ConflictException(
-            `Medidores duplicados en la petición: ${[...new Set(dupes)].join(', ')}`,
-          );
-        }
-
-        const uniqueMeters = [...new Set(normalized)];
-
-        // Requiere implementar este método en waterService para hacer una consulta IN(...)
-        const existingMeters =
-          await this.waterService.findByMeterNumbers(uniqueMeters);
-
-        if (existingMeters && existingMeters.length > 0) {
-          // Ajusta la propiedad según tu entidad, p.e. 'meter_number' o 'number'
-          const existingNumbers = existingMeters.map((w) =>
-            String(w.meter_number ?? w.meter_number).trim(),
-          );
-          const conflicts = uniqueMeters.filter((n) =>
-            existingNumbers.includes(n),
-          );
-          if (conflicts.length > 0) {
-            throw new ConflictException(
-              `Los siguientes medidores ya están registrados: ${conflicts.join(', ')}`,
-            );
-          }
-        }
-      }
-
-      user.roles = roles;
-
-      if (isAdmin && !(body.email || user.email)) {
-        throw new ConflictException('Un usuario ADMIN debe tener un email.');
-      }
+    if (existing.length) {
+      throw new ConflictException(
+        `Medidores ya registrados: ${existing
+          .map((m) => m.meter_number)
+          .join(', ')}`,
+      );
     }
 
-    Object.assign(user, body);
+    await this.waterService.createManyMeters(userId, normalized);
+  }
 
-    if (body.password)
-      user.password = await this.hashService.encrypt(body.password);
-
-    let userUpdate = await this.userRepository.save(user);
-    userUpdate = await this.findOneById(userUpdate._id);
-    userUpdate.profileImg =
-      this.configService.get('HOST_ADMIN') + 'profileImgs/' + user.profileImg;
-    return userUpdate;
+  private assignSafeFields(user: User, dto: UpdateUserDto) {
+    const { password, role_id, meter_numbers, profileImg, ...safe } = dto;
+    Object.assign(user, safe);
   }
 
   // =============== REMOVE A USER BY ID ===============
