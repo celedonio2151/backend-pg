@@ -62,7 +62,7 @@ export class SeedersModule {
         phoneNumber: faker.number
           .int({ min: 60000000, max: 79999999 })
           .toString(),
-        password: 'Password20xx!',
+        password: '123456789',
         status: true,
         email: faker.internet.email(),
         roles: [userRole],

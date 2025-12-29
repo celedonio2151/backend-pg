@@ -4,6 +4,7 @@ import {
   Injectable,
   InternalServerErrorException,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { FindOperator, Not, Repository } from 'typeorm';
@@ -166,20 +167,20 @@ export class UserService {
   async findOneByIdAndTokens(id: string, tokens: [string, string]) {
     const [accessToken, refreshToken] = tokens;
     const user = await this.findOneByIdRaw(id);
-    if (!user) throw new NotFoundException(`Usuario no encontrado`);
+    if (!user) throw new UnauthorizedException(`Token invalido`);
     const hasAccess = user.accessToken?.includes(accessToken);
     const hasRefresh = user.refreshToken?.includes(refreshToken);
 
     if (!hasAccess || !hasRefresh)
-      throw new NotFoundException(`Tokens inválidos`);
+      throw new UnauthorizedException(`Tokens inválidos`);
     return user;
   }
 
   async findOneByIdAndAccessToken(id: string, accessToken: string) {
     const user = await this.findOneByIdRaw(id);
-    if (!user) throw new NotFoundException(`Usuario no encontrado`);
+    if (!user) throw new UnauthorizedException(`Token invalido`);
     const hasAccess = user.accessToken?.includes(accessToken);
-    if (!hasAccess) throw new NotFoundException(`Token inválido`);
+    if (!hasAccess) throw new UnauthorizedException(`Token inválido`);
     return user;
   }
 
