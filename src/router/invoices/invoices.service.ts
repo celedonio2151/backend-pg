@@ -29,6 +29,7 @@ import { WaterMetersService } from '../water-meters/water-meters.service';
 import { GenerateQRCodeBNBDTO } from './dto/generate-qr-bnb.dto';
 import { PayManyMonthsDto, UpdateInvoiceDto } from './dto/update-invoice.dto';
 import { Invoice } from './entities/invoice.entity';
+import { CreateInvoiceDto } from './dto/create-invoice.dto';
 
 @Injectable()
 export class InvoicesService {
@@ -164,6 +165,24 @@ export class InvoicesService {
     return {
       message: `Recibos restantes generados del mes : ${formatDate(endDate, 'MMMM YYYY')}`,
     };
+  }
+
+  async createAnInvoice(meter_reading_id: string) {
+    const reading =
+      await this.meterReadingService.findOneById(meter_reading_id);
+    const body: CreateInvoiceDto = {
+      ownerCi: reading.waterMeter.user.ci,
+      ownerName: reading.waterMeter.user.name,
+      ownerSurname: reading.waterMeter.user.surname,
+      amountDue: reading.balance,
+    };
+    const reading2 = await this.invoicesRepository.findOne({
+      where: { meterReading: { _id: meter_reading_id } },
+      relations: { meterReading: true },
+    });
+    if (reading2) throw new NotAcceptableException(`Ya existe el recibo`);
+    const newInvoice = this.invoicesRepository.create(body);
+    return await this.invoicesRepository.save(newInvoice);
   }
 
   async findAll() {

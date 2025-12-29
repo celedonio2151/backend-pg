@@ -32,6 +32,12 @@ export class InvoicesController {
     return await this.invoicesService.createInvoices(date);
   }
 
+  // ========== CREATE AN INVOICE BY READING ID ==========
+  @Post('/id/:readingId')
+  async createAnInvoice(@Param('readingId') readingId: string) {
+    return await this.invoicesService.createAnInvoice(readingId);
+  }
+
   // ========== FIND BY ID AND GENERATE A INVOICE  ==========
   @Get('/pdf/:readingId')
   async createPDF(
