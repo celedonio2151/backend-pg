@@ -200,7 +200,6 @@ export class WaterMetersService {
 
   async listMReadingsOneYear(date: Date) {
     const { startDateY, endDateY } = getFirstLastDayYear(date);
-    console.log(startDateY, endDateY);
     const meters = await this.waterMeterRepository
       .createQueryBuilder('waterMeter')
       .leftJoinAndSelect('waterMeter.meterReadings', 'meter_reading')
@@ -258,7 +257,6 @@ export class WaterMetersService {
     if (body.user_id)
       waterMeter.user = await this.findUserByIdStatusTrue(body.user_id);
     Object.assign(waterMeter, body);
-    console.log(waterMeter);
     return await this.waterMeterRepository.save(waterMeter);
   }
 

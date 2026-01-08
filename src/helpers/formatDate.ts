@@ -1,13 +1,19 @@
 import dayjs from 'dayjs';
-import "dayjs/locale/es";
+import 'dayjs/locale/es';
 dayjs.locale('es');
 
-export function formatDate(datep: string | Date, format = 'dddd DD MMM YYYY'): string {
+export function formatDate(
+  datep: string | Date,
+  format = 'dddd DD MMM YYYY',
+): string {
   const date = dayjs(datep);
   return date.format(format);
 }
 
-export function calculateDaysRemaining(startDate: string | Date, endDate: string | Date): string {
+export function calculateDaysRemaining(
+  startDate: string | Date,
+  endDate: string | Date,
+): string {
   const start = dayjs(startDate);
   const end = dayjs(endDate);
 

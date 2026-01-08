@@ -12,13 +12,16 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
+  ApiBearerAuth,
   ApiBody,
   ApiConsumes,
   ApiOperation,
   ApiParam,
   ApiQuery,
+  ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+
 import { diskStorage } from 'multer';
 import { fileFilter, fileRename } from 'src/helpers/file.filter';
 import { PaginationDto } from 'src/shared/dto/pagination-query.dto';
@@ -28,6 +31,7 @@ import { UpdateMeterReadingDto } from './dto/update-meter-reading.dto';
 import { MeterReadingsService } from './meter-readings.service';
 
 @ApiTags('Meter Reading')
+@ApiBearerAuth()
 @Controller('reading')
 export class MeterReadingsController {
   constructor(private readonly meterReadingsService: MeterReadingsService) {}
@@ -39,6 +43,8 @@ export class MeterReadingsController {
     description: 'Datos necesarios para crear una lectura de medidor',
     type: CreateMeterReadingDto,
   })
+  @ApiResponse({ status: 201, description: 'Lectura creada exitosamente' })
+  @ApiResponse({ status: 400, description: 'Datos inválidos' })
   @UseInterceptors(
     FileInterceptor('meterImage', {
       storage: diskStorage({
@@ -60,6 +66,7 @@ export class MeterReadingsController {
 
   @Get()
   @ApiOperation({ summary: 'Obtener todas las lecturas de medidores' })
+  @ApiResponse({ status: 200, description: 'Listado de lecturas' })
   findAll(@Query() pagination: PaginationDto, @Query() date: FilterDateDto) {
     return this.meterReadingsService.findAllMeterReadings(pagination, date);
   }
@@ -74,6 +81,8 @@ export class MeterReadingsController {
     type: Number,
     example: 12345678,
   })
+  @ApiResponse({ status: 200, description: 'Lecturas encontradas' })
+  @ApiResponse({ status: 404, description: 'No se encontraron lecturas' })
   findReadingsInnerJoinMeterInvoiceByCI(
     @Param('ci') ci: number,
     @Query() pagination: PaginationDto,
@@ -96,6 +105,8 @@ export class MeterReadingsController {
     type: String,
     example: '123e4567-e89b-12d3-a456-426614174000',
   })
+  @ApiResponse({ status: 200, description: 'Última lectura encontrada' })
+  @ApiResponse({ status: 404, description: 'No se encontró lectura' })
   findOne(@Param('meterId') meterId: string) {
     return this.meterReadingsService.findTheLastMeterReading(meterId);
   }
@@ -110,6 +121,8 @@ export class MeterReadingsController {
     type: String,
     example: '123e4567-e89b-12d3-a456-426614174001',
   })
+  @ApiResponse({ status: 200, description: 'Lectura encontrada' })
+  @ApiResponse({ status: 404, description: 'Lectura no encontrada' })
   findOneMeterReading(@Param('readingId') readingId: string) {
     return this.meterReadingsService.findOneById(readingId);
   }
@@ -124,6 +137,7 @@ export class MeterReadingsController {
     required: true,
     example: 30,
   })
+  @ApiResponse({ status: 200, description: 'Balance calculado' })
   calculateBalance(@Query('cubic') cubic: number) {
     return this.meterReadingsService.calculateBalance(cubic);
   }
@@ -143,6 +157,8 @@ export class MeterReadingsController {
     description: 'Datos necesarios para actualizar una lectura de medidor',
     type: UpdateMeterReadingDto,
   })
+  @ApiResponse({ status: 200, description: 'Lectura actualizada' })
+  @ApiResponse({ status: 404, description: 'Lectura no encontrada' })
   update(
     @Param('id') id: string,
     @Body() updateMeterReadingDto: UpdateMeterReadingDto,
@@ -160,6 +176,8 @@ export class MeterReadingsController {
     type: String,
     example: '123e4567-e89b-12d3-a456-426614174001',
   })
+  @ApiResponse({ status: 200, description: 'Lectura eliminada' })
+  @ApiResponse({ status: 404, description: 'Lectura no encontrada' })
   remove(@Param('id') id: string) {
     return this.meterReadingsService.remove(+id);
   }

@@ -30,7 +30,6 @@ export class BoardDirectorsService {
         `Director con id: ${createBoardDirectorDto.userId} ya esta registrado`,
       );
     }
-    console.log('🚀 ~ BoardDirectorsService :', existDirector);
     // Create a new Director
     const newDirector = this.boardDirectorRepository.create(
       createBoardDirectorDto,

@@ -1,21 +1,22 @@
 import {
-    Body,
-    Controller,
-    Delete,
-    Get,
-    Param,
-    Patch,
-    Post,
-    Put,
-    Query,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Put,
+  Query,
 } from '@nestjs/common';
 import {
-    ApiBody,
-    ApiOperation,
-    ApiParam,
-    ApiQuery,
-    ApiResponse,
-    ApiTags,
+  ApiBearerAuth,
+  ApiBody,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiResponse,
+  ApiTags,
 } from '@nestjs/swagger';
 import { PaginationDto } from 'src/shared/dto/pagination-query.dto';
 import { BillingService } from './billing.service';
@@ -24,6 +25,7 @@ import { UpdateBillingDto, UpdateBillingsDto } from './dto/update-billing.dto';
 import { Billing } from './entities/billing.entity';
 
 @ApiTags('Billing | Facturación | Tarifa')
+@ApiBearerAuth()
 @Controller('billing')
 export class BillingController {
   constructor(private readonly billingService: BillingService) {}
@@ -113,7 +115,6 @@ export class BillingController {
     type: Billing,
   })
   update(@Param('id') id: string, @Body() body: UpdateBillingDto) {
-    console.log(body);
     return this.billingService.update(id, body);
   }
 

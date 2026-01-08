@@ -24,7 +24,7 @@ export class CreateBillingDto {
     minimum: 0,
   })
   max_cubic_meters: number;
-  
+
   @IsNumber()
   @Min(0)
   @ApiProperty({
@@ -33,7 +33,7 @@ export class CreateBillingDto {
     minimum: 0,
   })
   base_rate: number;
-  
+
   @IsNumber()
   @Min(0)
   @ApiProperty({

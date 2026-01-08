@@ -13,6 +13,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
+  ApiBearerAuth,
   ApiBody,
   ApiConsumes,
   ApiOperation,
@@ -21,6 +22,7 @@ import {
 } from '@nestjs/swagger';
 import { diskStorage } from 'multer';
 
+import { ConfigService } from '@nestjs/config';
 import { IsPublic } from 'src/decorators/public.decorator';
 import { GoogleAuthGuard } from 'src/guards/google-auth.guard';
 import { LocalAuthGuard } from 'src/guards/local-auth.guard';
@@ -47,6 +49,7 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly userService: UserService,
+    private readonly configService: ConfigService,
   ) {}
 
   // ====================  SIGNUP ADMIN  =======================
@@ -67,7 +70,7 @@ export class AuthController {
     @Body() createAuthDto: CreateAuthAdminDto,
     @UploadedFile() file: Express.Multer.File,
   ) {
-    console.log('🚀 ~ AuthController ~ createAuthDto:', createAuthDto);
+    // Log removido para producción
     try {
       if (createAuthDto.email) {
         const userExists = await this.userService.findByEmailRaw(
@@ -105,16 +108,19 @@ export class AuthController {
   @IsPublic()
   @UseGuards(GoogleAuthGuard)
   @Get('/google/callback')
-  // @ApiOperation({ summary: 'Iniciar sesión con google (administrador)' })
-  // @ApiResponse({ status: 200, description: 'Inicio de sesión exitoso' })
-  // @ApiBody({ type: LoginUserDto })
+  @ApiOperation({ summary: 'Callback de Google OAuth (Manejo interno)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Redirecciona al frontend con los tokens en la URL',
+  })
   async googCallback(@Request() req, @Res() res) {
     const user = await this.authService.validateGoogleUser(req.user);
     if (!user) {
       throw new BadRequestException('Error al iniciar sesión con Google');
     }
+    const frontendUrl = this.configService.get('FRONTEND');
     res.redirect(
-      `http://localhost:3000/auth/google/success?access_token=${user.myTokens.accessToken}&refresh_token=${user.myTokens.refreshToken}`,
+      `${frontendUrl}/auth/google/success?access_token=${user.myTokens.accessToken}&refresh_token=${user.myTokens.refreshToken}`,
     );
   }
 
@@ -144,8 +150,10 @@ export class AuthController {
   // @IsPublic()
   @Post('/logout')
   // @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Cerrar sesión actual (usuario autenticado)' })
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Cerrar sesión actual (Invalidar Refresh Token)' })
   @ApiResponse({ status: 200, description: 'Sesión cerrada correctamente' })
+  @ApiResponse({ status: 401, description: 'No autorizado' })
   logoutUser(@Req() req: RequestWithUser, @Body() body: LogoutUserDto) {
     return this.authService.logoutUser(
       req['user'],
@@ -156,13 +164,16 @@ export class AuthController {
 
   // ====================  LOGOUT ALL DEVICES  =========================
   @Post('/logout-all')
+  @ApiBearerAuth()
   @ApiOperation({
-    summary: 'Cerrar sesión en todos los dispositivos (por login)',
+    summary: 'Cerrar todas las sesiones del usuario',
+    description: 'Invalida todos los refresh tokens asociados al usuario',
   })
   @ApiResponse({
     status: 200,
     description: 'Sesiones cerradas correctamente en todos los dispositivos',
   })
+  @ApiResponse({ status: 401, description: 'No autorizado' })
   @ApiBody({ type: LoginUserDto })
   logoutAllDevices(@Req() req: RequestWithUser, @Body() body: LogoutUserDto) {
     return this.authService.logoutUserAllDevices(

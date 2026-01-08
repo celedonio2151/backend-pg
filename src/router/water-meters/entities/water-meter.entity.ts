@@ -20,6 +20,9 @@ export class WaterMeter extends AuditableEntity {
   @Column({ default: true })
   status: boolean;
 
+  @Column({ default: 99999 })
+  maximum_capacity: number;
+
   @ManyToOne(() => User, (user) => user.waterMeters, {
     nullable: false,
     onDelete: 'RESTRICT',

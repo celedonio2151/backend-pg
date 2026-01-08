@@ -121,9 +121,7 @@ export class AuthService {
 
   // ===============  LOGIN USER  =============================
   async loginUser(loginUser: LoginUserDto) {
-    console.log('🚀 ~ AuthService ~ loginUser ~ loginUser:', loginUser);
     const user = await this.userService.authfindByCIRaw(loginUser.ci);
-    console.log('🚀 ~ AuthService ~ loginUser ~ user:', user);
     if (!user) throw new UnauthorizedException(`Credenciales inválidos`);
     const payload: AuthPayload = {
       _id: user._id,
@@ -139,7 +137,6 @@ export class AuthService {
       user;
     result.profileImg =
       this.configService.get('HOST_ADMIN') + 'profileImgs/' + user.profileImg;
-    console.log(user);
     return {
       myTokens,
       user: result,

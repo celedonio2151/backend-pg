@@ -67,10 +67,30 @@ export class UserController {
   @ApiOperation({
     summary: 'Obtener lista de usuarios paginados y filtrados por estado',
   })
-  @ApiQuery({ name: 'limit', required: false, type: Number })
-  @ApiQuery({ name: 'offset', required: false, type: Number })
-  @ApiQuery({ name: 'status', required: false, type: Boolean })
-  @ApiQuery({ name: 'name', required: false, type: String })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Límite de resultados (paginación)',
+  })
+  @ApiQuery({
+    name: 'offset',
+    required: false,
+    type: Number,
+    description: 'Desplazamiento (paginación)',
+  })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    type: Boolean,
+    description: 'Filtrar por estado (true=activo, false=inactivo)',
+  })
+  @ApiQuery({
+    name: 'name',
+    required: false,
+    type: String,
+    description: 'Filtrar por nombre o apellido',
+  })
   findAll(
     @Query() pagination: PaginationDto,
     @Query() name: NameQueryDTO,
@@ -117,7 +137,7 @@ export class UserController {
   @UseInterceptors(
     FileInterceptor('profileImg', UserController.fileUploadConfig()),
   )
-  async updatemMe(
+  async updateMe(
     @Param('id') id: string,
     @Body() updateUserDto: UpdateUserDto,
     @UploadedFile() file: Express.Multer.File,

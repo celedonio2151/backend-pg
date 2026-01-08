@@ -9,7 +9,7 @@ import {
   Query,
   Res,
 } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { generateNamePDF } from 'src/helpers/generateNamePDF';
 import { ReceiveNotificationDTO } from 'src/router/invoices/dto/recieve-notification.dto';
@@ -22,6 +22,7 @@ import { PayManyMonthsDto, UpdateInvoiceDto } from './dto/update-invoice.dto';
 import { InvoicesService } from './invoices.service';
 
 @ApiTags('Facturas (Recibos de agua)')
+@ApiBearerAuth()
 @Controller('invoice')
 export class InvoicesController {
   constructor(private readonly invoicesService: InvoicesService) {}

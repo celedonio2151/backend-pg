@@ -1,11 +1,11 @@
 import {
-    Body,
+  Body,
   Controller,
-    Delete,
+  Delete,
   Get,
-    Param,
+  Param,
   Patch,
-    Post,
+  Post,
 } from '@nestjs/common';
 import { CreateInvoiceTableDto } from './dto/create-invoice-table.dto';
 import { UpdateInvoiceTableDto } from './dto/update-invoice-table.dto';

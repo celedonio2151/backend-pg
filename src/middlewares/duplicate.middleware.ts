@@ -9,21 +9,7 @@ export class CustomMiddleware implements NestMiddleware {
 
   use(req: Request, res: Response, next: NextFunction) {
     // Solo puede ser capturado body de tipo json
-    console.log('🚀 ~ CustomMiddleware ~ use ~ req:', req.body);
-    // console.log('Request headers:', req.headers);
-    console.log('Request method:', req.method);
-    console.log('Request url:', req.url);
-
-    // if (!email) {
-    //   throw new BadRequestException('Email is required');
-    // }
-
-    // const isRegistered = await this.userService.authfindByEmail(email);
-
-    // if (isRegistered) {
-    //   throw new BadRequestException('Email is already registered');
-    // }
-
+    // Logs de debug removidos para producción
     next();
   }
 }

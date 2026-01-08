@@ -52,4 +52,16 @@ export class CreateWaterMeterDto {
   @IsOptional()
   @Type(() => Boolean)
   readonly status?: boolean;
+
+  @ApiProperty({
+    description:
+      'Capacidad máxima del medidor (para detectar reinicio/rollover)',
+    example: 99999,
+    default: 99999,
+    required: false,
+  })
+  @IsNumber()
+  @IsOptional()
+  @Type(() => Number)
+  readonly maximum_capacity?: number;
 }

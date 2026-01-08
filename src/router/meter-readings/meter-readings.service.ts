@@ -44,11 +44,26 @@ export class MeterReadingsService {
     }
     // Verificar que el valor no debe ser inferior al anterior
     const beforeMonthAux = lastReading?.lastMonth.value || 0;
-    if (beforeMonthAux > body.lastMonthValue)
-      throw new NotAcceptableException(
-        `El valor ${body.lastMonthValue} debe ser mayor al anterior ${beforeMonthAux}`,
-      );
-    const cubicMeters = body.lastMonthValue - beforeMonthAux;
+    let cubicMeters = 0;
+
+    if (body.lastMonthValue < beforeMonthAux) {
+      // Lógica de Rollover (Reinicio del medidor)
+      const maxCapacity = waterMeter.maximum_capacity || 99999;
+      // Ejemplo: Max 9999, Anterior 9990, Actual 5
+      // (9999 - 9990) + 5 + 1 = 15 m3
+      cubicMeters = maxCapacity - beforeMonthAux + body.lastMonthValue + 1;
+
+      // Opcional: Agregar un límite de seguridad para evitar errores de dedo
+      // Si el consumo calculado es excesivamente alto (ej. > 1000 m3), podría ser un error real
+      if (cubicMeters > 5000) {
+        throw new NotAcceptableException(
+          `El consumo calculado por reinicio (${cubicMeters} m3) parece excesivo. Verifique la lectura.`,
+        );
+      }
+    } else {
+      // Cálculo normal
+      cubicMeters = body.lastMonthValue - beforeMonthAux;
+    }
     const balanceRaw = await this.billingService.calculateBalance(cubicMeters);
     const balance = typeof balanceRaw === 'number' ? balanceRaw : undefined;
 

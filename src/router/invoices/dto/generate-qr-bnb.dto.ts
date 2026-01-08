@@ -22,7 +22,7 @@ export class GenerateQRCodeBNBDTO {
   // @IsObject()
   @IsString()
   // @Exclude() // Excluir de la transformación a JSON
-  additionalData: string | Object;
+  additionalData: string | object;
   @IsNumber()
   destinationAccountId: number;
 }

@@ -8,7 +8,13 @@ import {
   Delete,
   Query,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 
 import { RolesService } from './roles.service';
 import { CreateRoleDto } from './dto/create-role.dto';
@@ -17,6 +23,7 @@ import { Role } from './entities/role.entity';
 import { PaginationDto } from 'src/shared/dto/pagination-query.dto';
 
 @ApiTags('Roles')
+@ApiBearerAuth()
 @Controller('role')
 export class RolesController {
   constructor(private readonly rolesService: RolesService) {}

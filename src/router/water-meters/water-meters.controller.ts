@@ -9,6 +9,7 @@ import {
   Query,
 } from '@nestjs/common';
 import {
+  ApiBearerAuth,
   ApiBody,
   ApiOperation,
   ApiParam,
@@ -23,6 +24,7 @@ import { UpdateWaterMeterDto } from './dto/update-water-meter.dto';
 import { WaterMetersService } from './water-meters.service';
 
 @ApiTags('Medidores de Agua')
+@ApiBearerAuth()
 @Controller('meter')
 export class WaterMetersController {
   constructor(private readonly waterMetersService: WaterMetersService) {}
@@ -34,6 +36,9 @@ export class WaterMetersController {
     description: 'Datos necesarios para crear un medidor de agua',
     type: CreateWaterMeterDto,
   })
+  @ApiResponse({ status: 201, description: 'Medidor creado exitosamente' })
+  @ApiResponse({ status: 400, description: 'Datos inválidos' })
+  @ApiResponse({ status: 409, description: 'El número de medidor ya existe' })
   create(@Body() body: CreateWaterMeterDto) {
     return this.waterMetersService.create(body);
   }
@@ -101,6 +106,8 @@ export class WaterMetersController {
     description: 'Cédula de identidad del usuario',
     type: Number,
   })
+  @ApiResponse({ status: 200, description: 'Medidores encontrados' })
+  @ApiResponse({ status: 404, description: 'No se encontraron medidores' })
   findManyByCI(@Param('ci') ci: number) {
     return this.waterMetersService.findManyByCI(ci);
   }
@@ -113,6 +120,8 @@ export class WaterMetersController {
     description: 'ID del medidor de agua',
     type: String,
   })
+  @ApiResponse({ status: 200, description: 'Medidor encontrado' })
+  @ApiResponse({ status: 404, description: 'Medidor no encontrado' })
   findOne(@Param('meterId') id: string) {
     return this.waterMetersService.findOneById(id);
   }
@@ -125,6 +134,8 @@ export class WaterMetersController {
     description: 'Datos necesarios para actualizar un medidor de agua',
     type: UpdateWaterMeterDto,
   })
+  @ApiResponse({ status: 200, description: 'Medidor actualizado' })
+  @ApiResponse({ status: 404, description: 'Medidor no encontrado' })
   update(
     @Param('id') id: string,
     @Body() updateWaterMeterDto: UpdateWaterMeterDto,
@@ -136,6 +147,8 @@ export class WaterMetersController {
   @Delete(':id')
   @ApiOperation({ summary: 'Eliminar un medidor de agua por ID' })
   @ApiParam({ name: 'id', description: 'ID del medidor de agua', type: String })
+  @ApiResponse({ status: 200, description: 'Medidor eliminado' })
+  @ApiResponse({ status: 404, description: 'Medidor no encontrado' })
   remove(@Param('id') id: string) {
     return this.waterMetersService.remove(id);
   }

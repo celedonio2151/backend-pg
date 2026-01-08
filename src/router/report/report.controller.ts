@@ -1,9 +1,4 @@
-import {
-    Controller,
-    Get,
-    Param,
-    Query
-} from '@nestjs/common';
+import { Controller, Get, Param, Query } from '@nestjs/common';
 import { FilterDateDto } from 'src/shared/dto/queries.dto';
 import { ReportService } from './report.service';
 

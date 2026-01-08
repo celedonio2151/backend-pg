@@ -1,13 +1,18 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
 import * as argon2 from 'argon2';
 
 @Injectable()
 export class HashService {
+  private readonly logger = new Logger(HashService.name);
   async encrypt(password: string): Promise<string> {
     try {
       return await argon2.hash(password);
     } catch (err) {
-      console.log(err);
+      this.logger.error('Error al encriptar contraseña', err);
       throw new InternalServerErrorException(
         `Error al encriptar la contraseña`,
       );
@@ -24,7 +29,7 @@ export class HashService {
         return false;
       }
     } catch (err) {
-      console.log(err);
+      this.logger.error('Error al comparar contraseñas', err);
       // internal failure
       throw new InternalServerErrorException('Error al comparar contraseñas');
     }

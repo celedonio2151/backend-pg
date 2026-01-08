@@ -23,7 +23,6 @@ export class BankService {
   ) {}
 
   create(createBankDto: CreateBankDto) {
-    console.log(createBankDto);
     return 'This action adds a new bank';
   }
 
@@ -39,7 +38,6 @@ export class BankService {
   //                GENERA UN CODIGO DE AUTENTICACION DESDE BNB
   // ================================================================
   async getTokenBNB(body?: TokenRequestDto): Promise<string> {
-    console.log(body);
     const accountId = this.configService.get<string>('ACCOUNTID_BNB');
     const authorizationId = this.configService.get<string>(
       'AUTHORIZATIONID_BNB',
@@ -118,7 +116,6 @@ export class BankService {
   }
 
   update(id: number, updateBankDto: UpdateBankDto) {
-    console.log(updateBankDto);
     return `This action updates a #${id} bank`;
   }
 
