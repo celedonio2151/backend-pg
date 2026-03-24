@@ -53,6 +53,8 @@ export class CreateUserDto {
   email?: string;
 
   @IsString()
+  @IsOptional()
+  @IsNotEmpty()
   @Length(6, 50)
   @IsStrongPassword()
   @ApiProperty({

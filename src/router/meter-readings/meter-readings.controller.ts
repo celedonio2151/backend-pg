@@ -57,10 +57,7 @@ export class MeterReadingsController {
       },
     }),
   )
-  create(
-    @Body() createMeterReadingDto: CreateMeterReadingDto,
-    @UploadedFile() file: Express.Multer.File,
-  ) {
+  create(@Body() createMeterReadingDto: CreateMeterReadingDto, @UploadedFile() file: Express.Multer.File) {
     return this.meterReadingsService.create(createMeterReadingDto, file);
   }
 
@@ -88,11 +85,7 @@ export class MeterReadingsController {
     @Query() pagination: PaginationDto,
     @Query() order: OrderQueryDTO,
   ) {
-    return this.meterReadingsService.findMeterReadingsInnerJoinWaterInvoiceByCI(
-      ci,
-      order,
-      pagination,
-    );
+    return this.meterReadingsService.findMeterReadingsInnerJoinWaterInvoiceByCI(ci, order, pagination);
   }
 
   @Get(':meterId')
@@ -159,10 +152,7 @@ export class MeterReadingsController {
   })
   @ApiResponse({ status: 200, description: 'Lectura actualizada' })
   @ApiResponse({ status: 404, description: 'Lectura no encontrada' })
-  update(
-    @Param('id') id: string,
-    @Body() updateMeterReadingDto: UpdateMeterReadingDto,
-  ) {
+  update(@Param('id') id: string, @Body() updateMeterReadingDto: UpdateMeterReadingDto) {
     return this.meterReadingsService.update(id, updateMeterReadingDto);
   }
 

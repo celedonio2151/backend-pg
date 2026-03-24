@@ -60,31 +60,21 @@ export class UserService {
       if (user) throw new ConflictException(`Email ${body.email} ya existe`);
     }
     if (await this.findOneByPhoneRaw(body.phoneNumber))
-      throw new ConflictException(
-        `El celular ${body.phoneNumber} ya esta registrado`,
-      );
+      throw new ConflictException(`El celular ${body.phoneNumber} ya esta registrado`);
     const ci = await this.findOneUserByCIRaw(body.ci);
     if (ci) throw new ConflictException(`El ci ${body.ci} ya esta registrado`);
     // buscar si el medidor ya esta registrado
     if (body.meter_number) {
-      const waterMeter = await this.waterService.findOneByMeterNumberRaw(
-        body.meter_number,
-      );
-      if (waterMeter)
-        throw new ConflictException(
-          `El medidor ${body.meter_number} ya esta registrado`,
-        );
+      const waterMeter = await this.waterService.findOneByMeterNumberRaw(body.meter_number);
+      if (waterMeter) throw new ConflictException(`El medidor ${body.meter_number} ya esta registrado`);
     }
     const newUser = this.userRepository.create(body);
     if (body.role_id?.length) {
-      const roles = await Promise.all(
-        body.role_id.map((roleId) => this.roleService.findOneById(roleId)),
-      );
+      const roles = await Promise.all(body.role_id.map((roleId) => this.roleService.findOneById(roleId)));
       newUser.roles = roles;
     } else {
       const findRoles = await this.roleService.findOneByNameRaw('USER');
-      if (!findRoles)
-        throw new InternalServerErrorException('Rol USER no encontrado');
+      if (!findRoles) throw new InternalServerErrorException('Rol USER no encontrado');
       newUser.roles = [findRoles]; // Guarda con el rol USER
     }
 
@@ -98,10 +88,7 @@ export class UserService {
       };
       await this.waterService.create(body2);
     }
-    newUser.profileImg =
-      this.configService.get('HOST_ADMIN') +
-      'profileImgs/' +
-      newUser.profileImg;
+    newUser.profileImg = this.configService.get('HOST_ADMIN') + 'profileImgs/' + newUser.profileImg;
     return newUser;
   }
 
@@ -110,16 +97,11 @@ export class UserService {
     if (user) throw new ConflictException(`Email ${body.email} ya existe`);
     const newUser = this.userRepository.create(body);
     if (body.role_id?.length) {
-      const roles = await Promise.all(
-        body.role_id.map((roleId) => this.roleService.findOneById(roleId)),
-      );
+      const roles = await Promise.all(body.role_id.map((roleId) => this.roleService.findOneById(roleId)));
       newUser.roles = roles;
     }
     await this.userRepository.save(newUser);
-    newUser.profileImg =
-      this.configService.get('HOST_ADMIN') +
-      'profileImgs/' +
-      newUser.profileImg;
+    newUser.profileImg = this.configService.get('HOST_ADMIN') + 'profileImgs/' + newUser.profileImg;
     return newUser;
   }
 
@@ -137,10 +119,7 @@ export class UserService {
     });
     const usersP = users.map((user) => {
       if (user.authProvider !== String(Providers.GOOGLE)) {
-        user.profileImg =
-          this.configService.get('HOST_ADMIN') +
-          'profileImgs/' +
-          user.profileImg;
+        user.profileImg = this.configService.get('HOST_ADMIN') + 'profileImgs/' + user.profileImg;
       }
       return user;
     });
@@ -159,8 +138,7 @@ export class UserService {
       select: userColumns,
     });
     if (!user) throw new NotFoundException(`User ${id} not found`);
-    user.profileImg =
-      this.configService.get('HOST_ADMIN') + 'profileImgs/' + user.profileImg;
+    user.profileImg = this.configService.get('HOST_ADMIN') + 'profileImgs/' + user.profileImg;
     return user;
   }
 
@@ -171,8 +149,7 @@ export class UserService {
     const hasAccess = user.accessToken?.includes(accessToken);
     const hasRefresh = user.refreshToken?.includes(refreshToken);
 
-    if (!hasAccess || !hasRefresh)
-      throw new UnauthorizedException(`Tokens inválidos`);
+    if (!hasAccess || !hasRefresh) throw new UnauthorizedException(`Tokens inválidos`);
     return user;
   }
 
@@ -212,8 +189,7 @@ export class UserService {
       select: userColumns,
     });
     if (!user) throw new NotFoundException(`Phone ${phone} not found`);
-    user.profileImg =
-      this.configService.get('HOST_ADMIN') + 'profileImgs/' + user.profileImg;
+    user.profileImg = this.configService.get('HOST_ADMIN') + 'profileImgs/' + user.profileImg;
     return user;
   }
 
@@ -223,8 +199,7 @@ export class UserService {
       select: userColumns,
     });
     if (!user) throw new NotFoundException(`Email ${email} not found`);
-    user.profileImg =
-      this.configService.get('HOST_ADMIN') + 'profileImgs/' + user.profileImg;
+    user.profileImg = this.configService.get('HOST_ADMIN') + 'profileImgs/' + user.profileImg;
     return user;
   }
 
@@ -267,9 +242,7 @@ export class UserService {
     if (body.email === user.email) {
       const userEmail = await this.findOneByEmailRaw(body.email);
       if (userEmail && userEmail._id !== _id)
-        throw new ConflictException(
-          `El email ${body.email} ya esta registrado  jjj`,
-        );
+        throw new ConflictException(`El email ${body.email} ya esta registrado  jjj`);
     }
     const userPhone = await this.userRepository.findOne({
       where: { _id, phoneNumber: body.phoneNumber },
@@ -284,9 +257,7 @@ export class UserService {
     }
 
     // Si el celular esta registrado con otro usuario
-    throw new ConflictException(
-      `El celular ${body.phoneNumber} ya esta registrado`,
-    );
+    throw new ConflictException(`El celular ${body.phoneNumber} ya esta registrado`);
   }
 
   // =============== UPDATE A USER BY ID ===============
@@ -296,12 +267,9 @@ export class UserService {
     await this.handleRoles(user, dto);
     this.assignSafeFields(user, dto);
 
-    if (dto.password)
-      user.password = await this.hashService.encrypt(dto.password);
+    if (dto.password) user.password = await this.hashService.encrypt(dto.password);
 
-    const normalized = [
-      ...new Set(dto.meter_numbers ? dto.meter_numbers.map(Number) : []),
-    ];
+    const normalized = [...new Set(dto.meter_numbers ? dto.meter_numbers.map(Number) : [])];
 
     try {
       await this.userRepository.save(user);
@@ -324,8 +292,7 @@ export class UserService {
     const roles = await this.roleService.findRolesInRaw(dto.role_id);
     // Verificar que tenga email y password si el rol es ADMIN
     if (roles.some((r) => r.name === 'ADMIN')) {
-      if (!dto.email || !dto.password)
-        throw new BadRequestException('Email y password son requeridos');
+      if (!dto.email || !dto.password) throw new BadRequestException('Email y password son requeridos');
     }
     user.roles = roles;
 
@@ -345,11 +312,7 @@ export class UserService {
     const existing = await this.waterService.findByMeterNumbers(normalized);
 
     if (existing.length) {
-      throw new ConflictException(
-        `Medidores ya registrados: ${existing
-          .map((m) => m.meter_number)
-          .join(', ')}`,
-      );
+      throw new ConflictException(`Medidores ya registrados: ${existing.map((m) => m.meter_number).join(', ')}`);
     }
 
     await this.waterService.createManyMeters(userId, normalized);

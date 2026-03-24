@@ -1,23 +1,9 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Param,
-  Patch,
-  Post,
-  Put,
-  Query,
-  Res,
-} from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Put, Query, Res } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { generateNamePDF } from 'src/helpers/generateNamePDF';
 import { ReceiveNotificationDTO } from 'src/router/invoices/dto/recieve-notification.dto';
-import {
-  FilterDateDto,
-  ModePDFQueryDto,
-  OrderQueryDTO,
-} from 'src/shared/dto/queries.dto';
+import { FilterDateDto, ModePDFQueryDto, OrderQueryDTO } from 'src/shared/dto/queries.dto';
 import { PayManyMonthsDto, UpdateInvoiceDto } from './dto/update-invoice.dto';
 import { InvoicesService } from './invoices.service';
 
@@ -67,8 +53,7 @@ export class InvoicesController {
     @Res() res: Response,
   ): Promise<void> {
     const modePDF = mode.mode || 'inline';
-    const pdfDoc =
-      await this.invoicesService.generatePDFDocumentDouble(readingId);
+    const pdfDoc = await this.invoicesService.generatePDFDocumentDouble(readingId);
     const filename = generateNamePDF();
     res.set({
       'Content-Type': 'application/pdf',
@@ -86,11 +71,7 @@ export class InvoicesController {
     @Query() dates: FilterDateDto,
     @Query('ci') ci: number,
   ) {
-    return await this.invoicesService.findUsersWithUnpaidInvoices(
-      dates,
-      ci,
-      order,
-    );
+    return await this.invoicesService.findUsersWithUnpaidInvoices(dates, ci, order);
   }
 
   // ========== LISTA ALL INVOICES RELATIONS WITH METER READING ==========
@@ -111,7 +92,7 @@ export class InvoicesController {
     return this.invoicesService.payManyMonths(body);
   }
 
-  // ========== PAID LOCAL MY INVOICE ==========
+  // ========== UPDATE AN INVOICE ==========
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateInvoiceDto: UpdateInvoiceDto) {
     return this.invoicesService.update(id, updateInvoiceDto);
@@ -127,7 +108,6 @@ export class InvoicesController {
   @Post('/qr/:readingId')
   generateQRBNB(@Param('readingId') readingId: string) {
     return this.invoicesService.getQRWithImageAsync2(readingId);
-    // return 'Hola que tal';
   }
 
   @Post('cancel/qr')

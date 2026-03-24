@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  NotAcceptableException,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotAcceptableException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
@@ -27,13 +23,8 @@ export class MeterReadingsService {
     private billingService: BillingService,
   ) {}
   // ========== CREATE A NEW METER READINGS ===========
-  async create(
-    body: CreateMeterReadingDto,
-    file: Express.Multer.File,
-  ): Promise<MeterReading> {
-    const waterMeter = await this.waterMeterService.findOneById(
-      body.water_meterId,
-    ); // Find the water meter
+  async create(body: CreateMeterReadingDto, file: Express.Multer.File): Promise<MeterReading> {
+    const waterMeter = await this.waterMeterService.findOneById(body.water_meterId); // Find the water meter
     // Verificar que la lectura sea secuencial por mes
     const lastReading = await this.findTheLastMeterReading(body.water_meterId);
     if (lastReading) {
@@ -158,17 +149,10 @@ export class MeterReadingsService {
       .createQueryBuilder('meter_reading')
       .where('meter_reading.date >= :startDate', { startDate })
       .andWhere('meter_reading.date <= :endDate', { endDate })
-      .andWhere(
-        '(meter_reading.lastMonth IS NULL OR meter_reading.lastMonth = :emptyJson)',
-        { emptyJson: '{}' },
-      )
+      .andWhere('(meter_reading.lastMonth IS NULL OR meter_reading.lastMonth = :emptyJson)', { emptyJson: '{}' })
       .getCount();
 
-    const data = await baseQuery
-      .clone()
-      .limit(limit)
-      .offset(offset)
-      .getManyAndCount();
+    const data = await baseQuery.clone().limit(limit).offset(offset).getManyAndCount();
     return {
       limit,
       offset,
@@ -305,8 +289,7 @@ export class MeterReadingsService {
     // }
     if (cubicMeters <= 6) return 20;
     if (cubicMeters > 6 && cubicMeters <= 10) return 20 + 6 * (cubicMeters - 6);
-    if (cubicMeters > 10 && cubicMeters < 20)
-      return 20 + 24 + 14 * (cubicMeters - 10);
+    if (cubicMeters > 10 && cubicMeters < 20) return 20 + 24 + 14 * (cubicMeters - 10);
     if (cubicMeters >= 20 && cubicMeters < 25) return 184;
     if (cubicMeters >= 25 && cubicMeters < 30) return 254;
     if (cubicMeters >= 30) return 324;
@@ -360,11 +343,7 @@ export class MeterReadingsService {
   }
 
   // ========== ENCUENTRA TODAS LAS LECTURAS DE UN USUARIO  ==========
-  async findMeterReadingsInnerJoinWaterInvoiceByCI(
-    ci: number,
-    order: OrderQueryDTO,
-    pagination: PaginationDto,
-  ) {
+  async findMeterReadingsInnerJoinWaterInvoiceByCI(ci: number, order: OrderQueryDTO, pagination: PaginationDto) {
     const { limit, offset } = pagination;
     // Buscar usuario por CI
     // const user = await this.userService.findOneByCI(ci);
@@ -456,8 +435,7 @@ export class MeterReadingsService {
   // ========== SUMA TODAS LAS LECTURAS POR MES ==========
   async sumAllMeterReadingsByMonth(date: FilterDateDto) {
     const { startDate, endDate } = date;
-    if (!startDate || !endDate)
-      throw new NotAcceptableException(`El rango de fechas es requerido`);
+    if (!startDate || !endDate) throw new NotAcceptableException(`El rango de fechas es requerido`);
 
     // Construir la consulta base con el filtro de fechas
     const baseQuery = this.meterReadingRepository
@@ -501,9 +479,7 @@ export class MeterReadingsService {
 
     // Validación de fechas
     if (!startDate || !endDate) {
-      throw new NotAcceptableException(
-        'Las fechas de inicio y fin son requeridas para el reporte mensual',
-      );
+      throw new NotAcceptableException('Las fechas de inicio y fin son requeridas para el reporte mensual');
     }
 
     // Asegurar que startDate esté al inicio del día y endDate al final del día
@@ -526,14 +502,8 @@ export class MeterReadingsService {
       .clone()
       .select('SUM(meter_reading.cubicMeters)', 'totalCubicMeters')
       .addSelect('SUM(meter_reading.balance)', 'totalBalance')
-      .addSelect(
-        'SUM(CASE WHEN invoice.isPaid = true THEN meter_reading.balance ELSE 0 END)',
-        'totalPaid',
-      )
-      .addSelect(
-        'SUM(CASE WHEN invoice.isPaid = false THEN meter_reading.balance ELSE 0 END)',
-        'totalPending',
-      )
+      .addSelect('SUM(CASE WHEN invoice.isPaid = true THEN meter_reading.balance ELSE 0 END)', 'totalPaid')
+      .addSelect('SUM(CASE WHEN invoice.isPaid = false THEN meter_reading.balance ELSE 0 END)', 'totalPending')
       .getRawOne<{
         totalCubicMeters: string;
         totalBalance: string;
@@ -584,9 +554,7 @@ export class MeterReadingsService {
     const { startDate, endDate } = dates;
     // Validación y manejo de fechas undefined
     if (!startDate || !endDate) {
-      throw new NotAcceptableException(
-        'Las fechas de inicio y fin son requeridas para el reporte anual',
-      );
+      throw new NotAcceptableException('Las fechas de inicio y fin son requeridas para el reporte anual');
     }
 
     // Asegurar que startDate esté al inicio del día y endDate al final del día
@@ -619,14 +587,8 @@ export class MeterReadingsService {
       .clone()
       .select('SUM(meter_reading.cubicMeters)', 'totalCubicMeters')
       .addSelect('SUM(meter_reading.balance)', 'totalBalance')
-      .addSelect(
-        'SUM(CASE WHEN invoice.isPaid = false THEN invoice.amountDue ELSE 0 END)',
-        'pendingAmount',
-      )
-      .addSelect(
-        'SUM(CASE WHEN invoice.isPaid = true THEN invoice.amountDue ELSE 0 END)',
-        'paidAmount',
-      )
+      .addSelect('SUM(CASE WHEN invoice.isPaid = false THEN invoice.amountDue ELSE 0 END)', 'pendingAmount')
+      .addSelect('SUM(CASE WHEN invoice.isPaid = true THEN invoice.amountDue ELSE 0 END)', 'paidAmount')
       .getRawOne<{
         totalCubicMeters: number;
         totalBalance: number;
@@ -684,9 +646,7 @@ export class MeterReadingsService {
     const { startDate, endDate } = dates;
     // Validación y manejo de fechas undefined
     if (!startDate || !endDate) {
-      throw new NotAcceptableException(
-        'Las fechas de inicio y fin son requeridas para el reporte anual',
-      );
+      throw new NotAcceptableException('Las fechas de inicio y fin son requeridas para el reporte anual');
     }
     const baseQuery = this.meterReadingRepository
       .createQueryBuilder('meter_reading')

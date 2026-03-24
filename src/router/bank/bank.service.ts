@@ -1,47 +1,50 @@
 import { HttpService } from '@nestjs/axios';
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
-import {
-  CreateBankDto,
-  GenerateQrDto,
-  TokenRequestDto,
-} from './dto/create-bank.dto';
+import { Repository } from 'typeorm';
+
+import { BnbQrPaymentDto, GenerateQrDto } from './dto/create-bank.dto';
 import { UpdateBankDto } from './dto/update-bank.dto';
-import {
-  GenerateQrResponse,
-  TokenResponse,
-} from './interfaces/bank_interfaces';
+import { GenerateQrResponse, TokenResponse } from './interfaces/bank_interfaces';
+import { BnbQrPayment } from './entities/bank.entity';
+import { InjectRepository } from '@nestjs/typeorm';
 
 @Injectable()
 export class BankService {
-  private readonly endpoint =
-    'http://test.bnb.com.bo/ClientAuthentication.API/api/v1/auth/token';
   constructor(
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
+    @InjectRepository(BnbQrPayment)
+    private readonly bankRepository: Repository<BnbQrPayment>,
   ) {}
 
-  create(createBankDto: CreateBankDto) {
-    return 'This action adds a new bank';
+  create(body: BnbQrPaymentDto) {
+    Logger.log('Creating new bank');
+    const newBank = this.bankRepository.create(body);
+    return this.bankRepository.save(newBank);
   }
 
   findAll() {
     return `This action returns all bank`;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} bank`;
+  async findOne(_id: string) {
+    const bank = await this.bankRepository.findOne({ where: { _id } });
+    if (!bank) throw new NotFoundException(`QR de pago con ID ${_id} no encontrado`);
+    return bank;
+  }
+
+  async findOneByInvoiceIdRaw(invoice_id: string) {
+    return await this.bankRepository.findOne({ where: { invoice_id } });
   }
 
   // ================================================================
   //                GENERA UN CODIGO DE AUTENTICACION DESDE BNB
   // ================================================================
-  async getTokenBNB(body?: TokenRequestDto): Promise<string> {
+  async getTokenBNB(): Promise<string> {
     const accountId = this.configService.get<string>('ACCOUNTID_BNB');
-    const authorizationId = this.configService.get<string>(
-      'AUTHORIZATIONID_BNB',
-    );
+    const authorizationId = this.configService.get<string>('AUTHORIZATIONID_BNB');
     const urlToken = this.configService.get<string>('URL_POST_TOKEN_BNB')!;
     try {
       const { data } = await firstValueFrom(
@@ -60,22 +63,13 @@ export class BankService {
       );
 
       if (!data.success) {
-        throw new HttpException(
-          'Autenticación fallida',
-          HttpStatus.UNAUTHORIZED,
-        );
+        throw new HttpException('Autenticación fallida', HttpStatus.UNAUTHORIZED);
       }
 
       return data.message; // JWT token
     } catch (error) {
-      console.error(
-        'Error al autenticar con el banco BNB:',
-        error?.response?.data || error.message,
-      );
-      throw new HttpException(
-        'Error al conectar con el banco BNB',
-        HttpStatus.BAD_GATEWAY,
-      );
+      console.error('Error al autenticar con el banco BNB:', error?.response?.data || error.message);
+      throw new HttpException('Error al conectar con el banco BNB', HttpStatus.BAD_GATEWAY);
     }
   }
 
@@ -97,21 +91,12 @@ export class BankService {
       );
 
       if (!data.success) {
-        throw new HttpException(
-          data.message || 'No se pudo generar el QR',
-          HttpStatus.BAD_REQUEST,
-        );
+        throw new HttpException(data.message || 'No se pudo generar el QR', HttpStatus.BAD_REQUEST);
       }
       return data;
     } catch (error) {
-      console.error(
-        'Error al generar QR:',
-        error?.response?.data || error.message,
-      );
-      throw new HttpException(
-        'Error al conectar con el banco para generar QR',
-        HttpStatus.BAD_GATEWAY,
-      );
+      console.error('Error al generar QR:', error?.response?.data || error.message);
+      throw new HttpException('Error al conectar con el banco para generar QR', HttpStatus.BAD_GATEWAY);
     }
   }
 

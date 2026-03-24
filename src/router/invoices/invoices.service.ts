@@ -1,10 +1,5 @@
 import { HttpService } from '@nestjs/axios';
-import {
-  BadRequestException,
-  Injectable,
-  NotAcceptableException,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, NotAcceptableException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { AxiosError } from 'axios';
 import { catchError, firstValueFrom } from 'rxjs';
@@ -15,21 +10,19 @@ import { getFirstLastDayMonth } from 'src/helpers/calculateEveryone';
 import { formatDate } from 'src/helpers/formatDate';
 import { invoiceBuilt } from 'src/libs/invoice';
 import { ReceiveNotificationDTO } from 'src/router/invoices/dto/recieve-notification.dto';
-import {
-  BodyGetTokenBNB,
-  InvoicePDF,
-  ReponseGetTokenBNB,
-} from 'src/router/invoices/interfaces/interfacesBNB.ForQR';
+import { BodyGetTokenBNB, InvoicePDF, ReponseGetTokenBNB } from 'src/router/invoices/interfaces/interfacesBNB.ForQR';
 import { MeterReadingsService } from 'src/router/meter-readings/meter-readings.service';
 import { PrinterService } from 'src/router/printer/printer.service';
 import { FilterDateDto, OrderQueryDTO } from 'src/shared/dto/queries.dto';
 import { BankService } from '../bank/bank.service';
-import { GenerateQrDto } from '../bank/dto/create-bank.dto';
+import { BnbQrPaymentDto, GenerateQrDto } from '../bank/dto/create-bank.dto';
 import { WaterMetersService } from '../water-meters/water-meters.service';
 import { GenerateQRCodeBNBDTO } from './dto/generate-qr-bnb.dto';
 import { PayManyMonthsDto, UpdateInvoiceDto } from './dto/update-invoice.dto';
 import { Invoice } from './entities/invoice.entity';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
+import { BnbQrStatus } from '../bank/entities/bank.entity';
+import { GenerateQrResponse } from '../bank/interfaces/bank_interfaces';
 
 @Injectable()
 export class InvoicesService {
@@ -46,8 +39,7 @@ export class InvoicesService {
 
   // ========== GENERA UN RECIBO DE PAGO  ==========
   async generatePDFDocument(readingId: string) {
-    const reading =
-      await this.meterReadingService.findMeterReadingById(readingId);
+    const reading = await this.meterReadingService.findMeterReadingById(readingId);
     const invoice = await this.invoicesRepository
       .createQueryBuilder('invoice')
       .leftJoinAndSelect('invoice.meterReading', 'meter_reading')
@@ -57,8 +49,7 @@ export class InvoicesService {
         meterReadingId: reading._id,
       })
       .getOne();
-    if (!invoice)
-      throw new NotFoundException(`El recibo aun no fue generado o no existe`);
+    if (!invoice) throw new NotFoundException(`El recibo aun no fue generado o no existe`);
     const body: InvoicePDF = {
       ci: invoice.ownerCi,
       // number: generateCodeNumber(Number(1)),
@@ -86,8 +77,7 @@ export class InvoicesService {
 
   // ========== GENERA UN RECIBO DE PAGO  ==========
   async generatePDFDocumentDouble(readingId: string) {
-    const reading =
-      await this.meterReadingService.findMeterReadingById(readingId);
+    const reading = await this.meterReadingService.findMeterReadingById(readingId);
     const invoice = await this.invoicesRepository
       .createQueryBuilder('invoice')
       .leftJoinAndSelect('invoice.meterReading', 'meter_reading')
@@ -97,8 +87,7 @@ export class InvoicesService {
         meterReadingId: reading._id,
       })
       .getOne();
-    if (!invoice)
-      throw new NotFoundException(`El recibo aun no fue generado o no existe`);
+    if (!invoice) throw new NotFoundException(`El recibo aun no fue generado o no existe`);
     const body: InvoicePDF = {
       ci: invoice.ownerCi,
       // number: generateCodeNumber(Number(1)),
@@ -129,18 +118,11 @@ export class InvoicesService {
     const { startDate, endDate } = date;
     console.log('🚀 ~ InvoicesService ~ createInvoices ~ date:', date);
     if (!startDate || !endDate) {
-      throw new NotAcceptableException(
-        `No se encontro la fecha de inicio y fin del mes`,
-      );
+      throw new NotAcceptableException(`No se encontro la fecha de inicio y fin del mes`);
     }
-    const readings = await this.meterReadingService.findAllMeterReadings(
-      { limit: undefined, offset: undefined },
-      date,
-    );
+    const readings = await this.meterReadingService.findAllMeterReadings({ limit: undefined, offset: undefined }, date);
     if (readings.readings.length <= 0)
-      throw new NotFoundException(
-        `No se encontraron lecturas del mes : ${formatDate(endDate, 'MMMM YYYY')}`,
-      );
+      throw new NotFoundException(`No se encontraron lecturas del mes : ${formatDate(endDate, 'MMMM YYYY')}`);
     for (const reading of readings.readings) {
       const checkInvoice = await this.invoicesRepository
         .createQueryBuilder('invoice')
@@ -168,8 +150,7 @@ export class InvoicesService {
   }
 
   async createAnInvoice(meter_reading_id: string) {
-    const reading =
-      await this.meterReadingService.findOneById(meter_reading_id);
+    const reading = await this.meterReadingService.findOneById(meter_reading_id);
     const body: CreateInvoiceDto = {
       ownerCi: reading.waterMeter.user.ci,
       ownerName: reading.waterMeter.user.name,
@@ -197,9 +178,7 @@ export class InvoicesService {
   async findOne(invoiceId: string) {
     const invoice = await this.invoicesRepository.findOneBy({ _id: invoiceId });
     if (!invoice) {
-      throw new NotFoundException(
-        `Recibo de pago ${invoiceId} aun no fue generado o no existe`,
-      );
+      throw new NotFoundException(`Recibo de pago ${invoiceId} aun no fue generado o no existe`);
     }
     return invoice;
   }
@@ -212,19 +191,13 @@ export class InvoicesService {
       .where('meter_reading._id = :readingId', { readingId })
       .getOne();
     if (!invoice) {
-      throw new NotFoundException(
-        `Recibo ${readingId} no existe o aun no fue generado`,
-      );
+      throw new NotFoundException(`Recibo ${readingId} no existe o aun no fue generado`);
     }
     return invoice;
   }
 
   // ========== ENCUENTRA LOS USUARIOS QUE NO PAGARON SU DEUDA ==========
-  async findUsersWithUnpaidInvoices(
-    date?: FilterDateDto,
-    ci?: number,
-    order?: OrderQueryDTO,
-  ) {
+  async findUsersWithUnpaidInvoices(date?: FilterDateDto, ci?: number, order?: OrderQueryDTO) {
     const queryBase = this.invoicesRepository
       .createQueryBuilder('invoice')
       .leftJoinAndSelect('invoice.meterReading', 'meter_reading')
@@ -260,9 +233,7 @@ export class InvoicesService {
       const [invoices, total] = await queryBase.getManyAndCount();
 
       // ✅ Información adicional útil
-      const uniqueUsers = new Set(
-        invoices.map((inv) => inv.meterReading?.waterMeter?.user?.ci),
-      );
+      const uniqueUsers = new Set(invoices.map((inv) => inv.meterReading?.waterMeter?.user?.ci));
       const dateRange =
         invoices.length > 0
           ? {
@@ -294,10 +265,7 @@ export class InvoicesService {
     const waterMeter = await this.waterMeterService.findOneById(body.meterId);
     for (const invoiceId of body.invoiceIds) {
       const invoice = await this.findOne(invoiceId);
-      if (!invoice)
-        throw new NotFoundException(
-          `El recibo ${invoiceId} no existe o aun no fue generado`,
-        );
+      if (!invoice) throw new NotFoundException(`El recibo ${invoiceId} no existe o aun no fue generado`);
       if (waterMeter._id !== invoice.meterReading.waterMeter._id)
         throw new BadRequestException('El medidor no coincide con el recibo');
       Object.assign(invoice, { isPaid: true });
@@ -308,10 +276,7 @@ export class InvoicesService {
   }
 
   // ========== ACTUALIZA EL ESTADO DE PAGO DEL FACTURA | RECIBO  ==========
-  async update(
-    invoiceId: string,
-    updateInvoiceDto: UpdateInvoiceDto,
-  ): Promise<Invoice> {
+  async update(invoiceId: string, updateInvoiceDto: UpdateInvoiceDto): Promise<Invoice> {
     const invoice = await this.invoicesRepository
       .createQueryBuilder('invoice')
       .leftJoinAndSelect('invoice.meterReading', 'meter_reading')
@@ -320,9 +285,7 @@ export class InvoicesService {
       })
       .getOne();
     if (!invoice) {
-      throw new NotFoundException(
-        `El recibo ${invoiceId} no existe o aun no fue generado`,
-      );
+      throw new NotFoundException(`El recibo ${invoiceId} no existe o aun no fue generado`);
     }
     await this.meterReadingService.findOneById(invoice.meterReading._id);
     Object.assign(invoice, updateInvoiceDto);
@@ -332,10 +295,7 @@ export class InvoicesService {
   }
 
   // ========== RECIEVE NOTIFICATION WHEN IS PAID BY QR  ==========
-  async payByQRRecieveNotificaion(
-    invoiceId: string,
-    body: ReceiveNotificationDTO,
-  ): Promise<Invoice> {
+  async payByQRRecieveNotificaion(invoiceId: string, body: ReceiveNotificationDTO): Promise<Invoice> {
     const invoice = await this.invoicesRepository
       .createQueryBuilder('invoice')
       .leftJoinAndSelect('invoice.meterReading', 'meter_reading')
@@ -344,9 +304,7 @@ export class InvoicesService {
       })
       .getOne();
     if (!invoice) {
-      throw new NotFoundException(
-        `El recibo ${invoiceId} no existe o aun no fue generado`,
-      );
+      throw new NotFoundException(`El recibo ${invoiceId} no existe o aun no fue generado`);
     }
     await this.meterReadingService.findOneById(invoice.meterReading._id);
     console.log('Body: ', invoiceId, body);
@@ -368,36 +326,57 @@ export class InvoicesService {
       .where('meter_reading._id = :readingId', { readingId })
       .getOne();
     if (!invoiceInnerReading)
-      throw new NotFoundException(
-        `No existe recibo para la lectura ${readingId} o aun no fue generado`,
-      );
+      throw new NotFoundException(`No existe recibo para la lectura ${readingId} o aun no fue generado`);
     if (invoiceInnerReading.isPaid)
       throw new NotAcceptableException(
         `El usuario ya cancelo su dueda del mes | ${formatDate(invoiceInnerReading.meterReading.date, 'MMMM YYYY')}`,
       );
-    const { endDate } = getFirstLastDayMonth(new Date());
+    const { endDate } = getFirstLastDayMonth(new Date()); // obtener a 3 meses desde el mes lecturado
     const body: GenerateQrDto = {
       currency: 'BOB',
       gloss: `Prueba QR`,
       amount: invoiceInnerReading.amountDue,
-      expirationDate: formatDate(endDate, 'YYYY-MM-DD HH:mm'),
+      expirationDate: endDate.toISOString(),
       singleUse: true,
       additionalData: `_id=${invoiceInnerReading._id}`,
       destinationAccountId: '1',
     };
+    const checkQR = await this.bankService.findOneByInvoiceIdRaw(invoiceInnerReading._id);
+    if (checkQR) {
+      // retornar el QR existente
+      const qrExist: GenerateQrResponse = {
+        id: checkQR.qr_id,
+        qr: checkQR.qr_image,
+        message: '',
+        success: true,
+      };
+      return {
+        bankBNB: qrExist,
+        aditional: {
+          name: invoiceInnerReading.ownerName + ' ' + invoiceInnerReading.ownerSurname,
+          month: invoiceInnerReading.meterReading.date,
+          ...body,
+        },
+      };
+    }
     const response = await this.bankService.generateQR(body);
-    console.log(response);
     const resClient = {
       bankBNB: response,
       aditional: {
-        name:
-          invoiceInnerReading.ownerName +
-          ' ' +
-          invoiceInnerReading.ownerSurname,
+        name: invoiceInnerReading.ownerName + ' ' + invoiceInnerReading.ownerSurname,
         month: invoiceInnerReading.meterReading.date,
         ...body,
       },
     };
+    const bnbQrPaymentDto: BnbQrPaymentDto = {
+      ...body,
+      qr_id: response.id,
+      qr_image: response.qr,
+      status: BnbQrStatus.PENDING,
+      expires_at: new Date(body.expirationDate),
+      invoice_id: invoiceInnerReading._id,
+    };
+    await this.bankService.create(bnbQrPaymentDto);
     return resClient;
   }
   // ==================== GENEATE QR POR EL READING ID ================
@@ -414,9 +393,7 @@ export class InvoicesService {
     // console.log('🚀 reading:', invoiceInnerReading);
     // Si no existe el recibo devolver un error
     if (!invoiceInnerReading)
-      throw new NotFoundException(
-        `No existe recibo para la lectura ${readingId} o aun no fue generado`,
-      );
+      throw new NotFoundException(`No existe recibo para la lectura ${readingId} o aun no fue generado`);
     if (invoiceInnerReading.isPaid)
       throw new NotAcceptableException(
         `El usuario ya cancelo su dueda del mes | ${formatDate(invoiceInnerReading.meterReading.date, 'MMMM YYYY')}`,
@@ -437,15 +414,10 @@ export class InvoicesService {
     if (fistData) {
       const data = await this.getQRBankBNB(fistData, body);
       // Utilizar el token para hacer otra solicitud y obtener la imagen de bits QR
-      console.log(data);
-      // console.log(JSON.parse(data));
       const resClient = {
         bankBNB: JSON.parse(data),
         aditional: {
-          name:
-            invoiceInnerReading.ownerName +
-            ' ' +
-            invoiceInnerReading.ownerSurname,
+          name: invoiceInnerReading.ownerName + ' ' + invoiceInnerReading.ownerSurname,
           month: invoiceInnerReading.meterReading.date,
           ...body,
         },
@@ -458,9 +430,7 @@ export class InvoicesService {
   // ========== OBTIENE EL TOKEN DE BNB PARA PETICIONES ==========
   async getTokenBankBNB() {
     const accountId = this.configService.get<string>('ACCOUNTID_BNB')!;
-    const authorizationId = this.configService.get<string>(
-      'AUTHORIZATIONID_BNB',
-    )!;
+    const authorizationId = this.configService.get<string>('AUTHORIZATIONID_BNB')!;
     const ulrToken = this.configService.get<string>('URL_POST_TOKEN_BNB')!;
     const body: BodyGetTokenBNB = {
       accountId,

@@ -1,12 +1,6 @@
 import { AuditableEntity } from 'src/configs/auditable-entity.config';
 import { User } from 'src/router/user/entities/user.entity';
-import {
-  Column,
-  Entity,
-  JoinColumn,
-  OneToOne,
-  PrimaryGeneratedColumn,
-} from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity()
 export class BoardDirector extends AuditableEntity {
@@ -31,7 +25,10 @@ export class BoardDirector extends AuditableEntity {
   @Column({ default: true })
   status: boolean;
 
-  @OneToOne(() => User, (user) => user.boardDirector, { eager: false })
+  @Column({ name: 'user_id' })
+  user_id: string;
+
+  @ManyToOne(() => User, (user) => user.boardDirector, { eager: false })
   @JoinColumn({ name: 'user_id' })
   user: User;
 }

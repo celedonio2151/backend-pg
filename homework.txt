@@ -1,10 +1,6 @@
 Al calcular los saldos por consumo, si excede a las formulas registradas mejorar o devolver el unltimo saldo en billing.service.ts
 
-Al crer un usuario desde el dashboard, esta pidiendo contraseña y no deberia
 Al cambiar de rol un usuario diferente de adminsitrador deberia pedir contraseña
-
-Al editar un usuario esta pidiendo contraseña con ROL ADMIN
-
 
 
 No dejar eliminar un usuario y dejar null o heurfano un medidor
@@ -17,3 +13,7 @@ contraseña por defecto al crear el primer usuario en el sistema
 ci: 123456789
 email: admin@gmail.com
 pass: 123456789
+
+
+
+obtener a 3 meses desde el mes lecturado

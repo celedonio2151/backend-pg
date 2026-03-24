@@ -1,9 +1,4 @@
-import {
-  BadRequestException,
-  ConflictException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { PaginationDto } from 'src/shared/dto/pagination-query.dto';
 import { In, Repository } from 'typeorm';
@@ -23,14 +18,14 @@ export class RolesService {
     const defaultRoles: CreateRoleDto[] = [
       { name: 'ADMIN', description: 'Administrador del sistema' },
       { name: 'USER', description: 'Usuario registrado por defecto' },
+      { name: 'READER', description: 'Lecturador de medidores' },
       { name: 'TECHNICIAN', description: 'Tecnico del sistema' },
     ];
     for (const roleData of defaultRoles) {
       const exists = await this.roleRepository.findOne({
         where: { name: roleData.name },
       });
-      if (!exists)
-        await this.roleRepository.save(this.roleRepository.create(roleData));
+      if (!exists) await this.roleRepository.save(this.roleRepository.create(roleData));
     }
   }
 
@@ -76,34 +71,5 @@ export class RolesService {
     return await this.roleRepository.findBy({
       _id: In(_ids),
     });
-  }
-
-  async update(id: string, updateRoleDto: UpdateRoleDto): Promise<Role> {
-    const role = await this.findOneById(id);
-    const name = await this.roleRepository.findOne({
-      where: { name: updateRoleDto.name },
-    });
-    if (name && name._id !== id) {
-      throw new ConflictException(
-        `Rol con el nombre ${updateRoleDto.name} ya existe`,
-      );
-    }
-    const updated = Object.assign(role, updateRoleDto);
-    return this.roleRepository.save(updated);
-  }
-
-  async remove(id: string): Promise<void> {
-    const role = await this.findOneById(id);
-    if (
-      role.name === 'USER' ||
-      role.name === 'ADMIN' ||
-      role.name === 'TECHNICIAN'
-    ) {
-      throw new BadRequestException(`No se puede borrar el rol ${role.name}`);
-    }
-    const result = await this.roleRepository.delete(id);
-    if (result.affected === 0) {
-      throw new NotFoundException(`Role with id ${id} not found`);
-    }
   }
 }

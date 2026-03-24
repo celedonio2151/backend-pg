@@ -25,11 +25,7 @@ import {
 import { diskStorage } from 'multer';
 
 import { deleteFile } from 'src/helpers/delete.file';
-import {
-  fileFilter,
-  fileRename,
-  profileImgFilePath,
-} from 'src/helpers/file.filter';
+import { fileFilter, fileRename, profileImgFilePath } from 'src/helpers/file.filter';
 import { PaginationDto } from 'src/shared/dto/pagination-query.dto';
 import { NameQueryDTO, StatusQueryDto } from 'src/shared/dto/queries.dto';
 import { RequestWithUser } from '../auth/interface/payload.interface';
@@ -51,13 +47,8 @@ export class UserController {
   @ApiResponse({ status: 409, description: 'El celular ya está registrado' })
   @ApiResponse({ status: 409, description: 'El email ya está registrado' })
   @ApiOperation({ summary: 'Registrar un nuevo usuario' })
-  @UseInterceptors(
-    FileInterceptor('profileImg', UserController.fileUploadConfig()),
-  )
-  create(
-    @Body() createUserDto: CreateUserDto,
-    @UploadedFile() file: Express.Multer.File,
-  ) {
+  @UseInterceptors(FileInterceptor('profileImg', UserController.fileUploadConfig()))
+  create(@Body() createUserDto: CreateUserDto, @UploadedFile() file: Express.Multer.File) {
     return this.userService.create(createUserDto, file?.filename);
   }
   // ===========================================================
@@ -91,11 +82,7 @@ export class UserController {
     type: String,
     description: 'Filtrar por nombre o apellido',
   })
-  findAll(
-    @Query() pagination: PaginationDto,
-    @Query() name: NameQueryDTO,
-    @Query() status: StatusQueryDto,
-  ) {
+  findAll(@Query() pagination: PaginationDto, @Query() name: NameQueryDTO, @Query() status: StatusQueryDto) {
     return this.userService.findAll(pagination, status);
   }
   // ===========================================================
@@ -134,9 +121,7 @@ export class UserController {
     type: UpdateUserDto,
   })
   @ApiResponse({ status: 200, description: 'Usuario actualizado' })
-  @UseInterceptors(
-    FileInterceptor('profileImg', UserController.fileUploadConfig()),
-  )
+  @UseInterceptors(FileInterceptor('profileImg', UserController.fileUploadConfig()))
   async updateMe(
     @Param('id') id: string,
     @Body() updateUserDto: UpdateUserDto,

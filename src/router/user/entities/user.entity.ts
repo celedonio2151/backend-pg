@@ -1,14 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  Column,
-  Entity,
-  Index,
-  JoinTable,
-  ManyToMany,
-  OneToMany,
-  OneToOne,
-  PrimaryGeneratedColumn,
-} from 'typeorm';
+import { Column, Entity, Index, JoinTable, ManyToMany, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 
 import { AuditableEntity } from 'src/configs/auditable-entity.config';
 import { BoardDirector } from 'src/router/board-directors/entities/board-director.entity';
@@ -46,7 +37,7 @@ export class User extends AuditableEntity {
   @Index('IDX_USER_EMAIL_UNIQUE', { unique: true })
   email: string;
 
-  @Column({ type: 'varchar', length: 500 })
+  @Column({ type: 'varchar', length: 500, nullable: true })
   @ApiProperty({ description: 'Contraseña encriptada del usuario' })
   password: string;
 
@@ -103,7 +94,7 @@ export class User extends AuditableEntity {
   @OneToMany(() => WaterMeter, (waterMeter) => waterMeter.user)
   waterMeters: WaterMeter[];
 
-  @OneToOne(() => BoardDirector, (boardDirector) => boardDirector.user, {
+  @OneToMany(() => BoardDirector, (boardDirector) => boardDirector.user, {
     cascade: true,
   })
   boardDirector: BoardDirector;

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { BoardDirector } from 'src/router/board-directors/entities/board-director.entity';
@@ -19,21 +19,9 @@ export class BoardDirectorsService {
   ) {}
   async create(createBoardDirectorDto: CreateBoardDirectorDto) {
     // Find the user and verify that exists
-    const user = await this.userservice.findOneById(
-      createBoardDirectorDto.userId,
-    );
-    const existDirector = await this.findDirectorById(
-      createBoardDirectorDto.userId,
-    );
-    if (existDirector) {
-      throw new NotFoundException(
-        `Director con id: ${createBoardDirectorDto.userId} ya esta registrado`,
-      );
-    }
+    const user = await this.userservice.findOneById(createBoardDirectorDto.userId);
     // Create a new Director
-    const newDirector = this.boardDirectorRepository.create(
-      createBoardDirectorDto,
-    );
+    const newDirector = this.boardDirectorRepository.create(createBoardDirectorDto);
     // Add foreign key form user table
     newDirector.user = user;
     return await this.boardDirectorRepository.save(newDirector);
@@ -114,10 +102,7 @@ export class BoardDirectorsService {
       },
     });
     if (!director) throw new NotFoundException(`Usuario no encontrado`);
-    director.user.profileImg =
-      this.configService.get('HOST_ADMIN') +
-      'profileImgs/' +
-      director.user.profileImg;
+    director.user.profileImg = this.configService.get('HOST_ADMIN') + 'profileImgs/' + director.user.profileImg;
     return director;
   }
 
@@ -147,10 +132,7 @@ export class BoardDirectorsService {
       },
     });
     if (!director) throw new NotFoundException(`Usuario no encontrado`);
-    director.user.profileImg =
-      this.configService.get('HOST_ADMIN') +
-      'profileImgs/' +
-      director.user.profileImg;
+    director.user.profileImg = this.configService.get('HOST_ADMIN') + 'profileImgs/' + director.user.profileImg;
     return director;
   }
 
@@ -182,9 +164,7 @@ export class BoardDirectorsService {
         .execute();
 
       if (updateResult.affected === 0) {
-        throw new NotFoundException(
-          `Failed to update BoardDirector with ID ${id}`,
-        );
+        throw new NotFoundException(`Failed to update BoardDirector with ID ${id}`);
       }
 
       // Retornar el registro actualizado
@@ -202,6 +182,12 @@ export class BoardDirectorsService {
   // ===============  FIND DIRECTOR BY ID ===============
   async findDirectorById(id: string): Promise<BoardDirector | null> {
     const director = await this.boardDirectorRepository.findOneBy({ _id: id });
+    return director;
+  }
+
+  // ===============  FIND DIRECTOR BY USER ID ===============
+  async findDirectorByUserId(user_id: string): Promise<BoardDirector | null> {
+    const director = await this.boardDirectorRepository.findOneBy({ user_id });
     return director;
   }
 }

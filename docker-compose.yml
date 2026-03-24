@@ -13,6 +13,9 @@ services:
       MYSQL_DATABASE: $DB_NAME
     ports:
       - $DB_PORT:$DB_PORT
+    dns:
+          - 8.8.8.8 # Servidor DNS público de Google
+          - 8.8.4.4 # Servidor DNS público secundario de Google
 
   ml-agua-app:
     build: .

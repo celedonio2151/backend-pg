@@ -1,14 +1,8 @@
 import { AuditableEntity } from 'src/configs/auditable-entity.config';
+import { BnbQrPayment } from 'src/router/bank/entities/bank.entity';
 import { InvoiceTable } from 'src/router/invoice-table/entities/invoice-table.entity';
 import { MeterReading } from 'src/router/meter-readings/entities/meter-reading.entity';
-import {
-  Column,
-  Entity,
-  JoinColumn,
-  ManyToOne,
-  OneToOne,
-  PrimaryGeneratedColumn,
-} from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity()
 export class Invoice extends AuditableEntity {
@@ -45,4 +39,7 @@ export class Invoice extends AuditableEntity {
   })
   @JoinColumn({ name: 'invoice_table_id' })
   invoiceTable: InvoiceTable;
+
+  @OneToOne(() => BnbQrPayment, (bnbQR) => bnbQR.invoice, {})
+  qrPayment: BnbQrPayment;
 }

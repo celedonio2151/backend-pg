@@ -40,8 +40,8 @@ export class SeedersModule {
     // Fechas de lectura desde enero 2023 hasta mayo 2025
     const generarFechasMensuales = (): Date[] => {
       const fechas: Date[] = [];
-      const start = new Date('2025-01-20');
-      const end = new Date('2025-10-20');
+      const start = new Date('2023-01-20');
+      const end = new Date('2026-01-20');
       const current = new Date(start);
       while (current <= end) {
         fechas.push(new Date(current));
@@ -52,7 +52,7 @@ export class SeedersModule {
 
     const fechasLectura = generarFechasMensuales();
 
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 100; i++) {
       // Crear usuario
       const user = dataSource.manager.create(User, {
         name: faker.person.firstName(),

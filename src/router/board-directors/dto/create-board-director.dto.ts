@@ -1,12 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import {
-  IsDate,
-  IsNotEmpty,
-  IsNumber,
-  IsOptional,
-  IsString,
-} from 'class-validator';
+import { IsDate, IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class CreateBoardDirectorDto {
   @ApiProperty({
@@ -41,8 +35,7 @@ export class CreateBoardDirectorDto {
   positionRole: string;
 
   @ApiProperty({
-    description:
-      'Orden jerárquico (1: Presidente, 2: Vicepresidente, 3: Secretario, 4: Tesorero, 5: Vocal) etc.',
+    description: 'Orden jerárquico (1: Presidente, 2: Vicepresidente, 3: Secretario, 4: Tesorero, 5: Vocal) etc.',
     minimum: 1,
     maximum: 10,
     example: 1,

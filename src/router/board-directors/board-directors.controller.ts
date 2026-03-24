@@ -1,22 +1,5 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Param,
-  Patch,
-  Post,
-  Query,
-} from '@nestjs/common';
-import {
-  ApiBearerAuth,
-  ApiBody,
-  ApiOperation,
-  ApiParam,
-  ApiQuery,
-  ApiResponse,
-  ApiTags,
-} from '@nestjs/swagger';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 import { PaginationDto } from 'src/shared/dto/pagination-query.dto';
 import { StatusQueryDto } from 'src/shared/dto/queries.dto';
@@ -82,10 +65,7 @@ export class BoardDirectorsController {
   @ApiBody({ type: UpdateBoardDirectorDto })
   @ApiResponse({ status: 200, description: 'Miembro actualizado' })
   @ApiResponse({ status: 404, description: 'Miembro no encontrado' })
-  update(
-    @Param('id') id: string,
-    @Body() updateBoardDirectorDto: UpdateBoardDirectorDto,
-  ) {
+  update(@Param('id') id: string, @Body() updateBoardDirectorDto: UpdateBoardDirectorDto) {
     return this.boardDirectorsService.update(id, updateBoardDirectorDto);
   }
 

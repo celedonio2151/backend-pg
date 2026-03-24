@@ -15,7 +15,7 @@ export function invoiceBuilt(data: InvoicePDF): TDocumentDefinitions {
     },
     pageMargins: 40,
     header: {
-      text: 'I love you',
+      text: 'Mosoj Llajta',
       alignment: 'right',
       margin: 10,
     },
