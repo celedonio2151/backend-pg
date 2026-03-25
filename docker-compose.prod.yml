@@ -1,20 +1,19 @@
 # version: '5.0'
 
 services:
-  mysqldbml:
-    image: mysql
-    container_name: mysqlMLProd
+  postgresdbml:
+    image: postgres:15-alpine
+    container_name: postgresMLProd
     restart: always
     env_file: ./.env
     environment:
-      MYSQL_ROOT_PASSWORD: $DB_PASSWORD_ROOT
-      MYSQL_USER: $DB_USER
-      MYSQL_PASSWORD: $DB_PASSWORD
-      MYSQL_DATABASE: $DB_NAME
+      POSTGRES_USER: $DB_USER
+      POSTGRES_PASSWORD: $DB_PASSWORD
+      POSTGRES_DB: $DB_NAME
     ports:
-      - $DB_PORT:$DB_PORT
+      - $DB_PORT:5432
     volumes:
-      - db_data:/var/lib/mysql
+      - db_data:/var/lib/postgresql/data
 
   ml-agua-app:
     build:
@@ -23,7 +22,7 @@ services:
     container_name: nestMLProd
     env_file: .env
     depends_on:
-      - mysqldbml
+      - postgresdbml
     ports:
       - $PORT:$PORT
 volumes:

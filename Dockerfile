@@ -5,7 +5,7 @@ FROM node:22-alpine3.20
 WORKDIR /backendMosojLlajta
 
 # Copiar package.json y package-lock.json
-COPY package*.json .
+COPY package*.json ./
 
 # Instalar las dependencias del proyecto
 RUN npm install

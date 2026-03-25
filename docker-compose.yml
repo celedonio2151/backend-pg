@@ -1,30 +1,28 @@
 # version: '5.0'
 
 services:
-  mysqldbml:
-    image: mysql
-    container_name: mysqlML
+  postgresdbml:
+    image: postgres:16-alpine
+    container_name: postgresML
     restart: always
     env_file: ./.env
     environment:
-      MYSQL_ROOT_PASSWORD: $DB_PASSWORD_ROOT
-      MYSQL_USER: $DB_USER
-      MYSQL_PASSWORD: $DB_PASSWORD
-      MYSQL_DATABASE: $DB_NAME
+      POSTGRES_USER: $DB_USER
+      POSTGRES_PASSWORD: $DB_PASSWORD
+      POSTGRES_DB: $DB_NAME
     ports:
-      - $DB_PORT:$DB_PORT
-    dns:
-          - 8.8.8.8 # Servidor DNS público de Google
-          - 8.8.4.4 # Servidor DNS público secundario de Google
+      - $DB_PORT:5432
+    volumes:
+      - db_data_ml:/var/lib/postgresql/data
 
   ml-agua-app:
     build: .
     container_name: nestML
     env_file: .env
     depends_on:
-      - mysqldbml
+      - postgresdbml
     # links:
-    #   - mysqldbml
+    #   - postgresdbml
     volumes:
       - .:/backendMosojLlajta
       - /backendMosojLlajta/node_modules
